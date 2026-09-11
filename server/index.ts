@@ -29,7 +29,6 @@ import { getAppVersion } from '@server/utils/appVersion';
 import createCustomProxyAgent, {
   setForceIpv4First,
 } from '@server/utils/customProxyAgent';
-import { isPgsql } from '@server/utils/dbType';
 import { initializeDnsCache } from '@server/utils/dnsCache';
 import restartFlag from '@server/utils/restartFlag';
 import '@server/utils/userAgent';
@@ -72,13 +71,9 @@ app
 
     // Run migrations in production
     if (process.env.NODE_ENV === 'production') {
-      if (isPgsql) {
-        await dbConnection.runMigrations();
-      } else {
-        await dbConnection.query('PRAGMA foreign_keys=OFF');
-        await dbConnection.runMigrations();
-        await dbConnection.query('PRAGMA foreign_keys=ON');
-      }
+      await dbConnection.query('PRAGMA foreign_keys=OFF');
+      await dbConnection.runMigrations();
+      await dbConnection.query('PRAGMA foreign_keys=ON');
     }
 
     // Load Settings

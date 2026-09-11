@@ -1,2 +1,4 @@
 // Must stay import-free, entity decorators read this during datasource evaluation
-export const isPgsql = process.env.DB_TYPE === 'postgres';
+// ponytail: hardcoded false so entity files (DbAwareColumn/resolveDbType callers) stay
+// unchanged; the dead export itself gets swept once those files are revisited.
+export const isPgsql = false as const;

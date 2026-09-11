@@ -139,9 +139,15 @@ lint, tests, build; update PROGRESS.md; commit.
 
 | Task | Description | Files | Depends |
 |---|---|---|---|
-| B1 | `MediaType` → `SCENE='scene' \| SITE='site'`; drop `status4k`/`is4k`/`*4k` columns from entities; add `failureReason` to MediaRequest; `Media.tmdbId` → `tpdbId` (+ `stashId` nullable); keep Season/SeasonRequest (D2). | `server/constants/media.ts`, `server/entity/{Media,MediaRequest,Season,SeasonRequest}.ts` | — |
-| B2 | SQLite migration for B1 (single migration; this is a hard fork, no upgrade path from Seerr data — document "fresh database" in README). Remove `server/migration/postgres/`, `isPgsql`, pg config branches, `pg` dep. | `server/migration/**`, `server/datasource.ts`, `server/utils/dbType.ts`, `package.json` | B1 |
-| B3 | Fix all compile fallout in entities/subscribers from B1 (mechanical rename/removal, no behaviour change yet). | `server/subscriber/*`, `server/entity/*` (shared with B1 — sequential, same agent) | B1 |
+> **Strategy adjustment (post-A, 2026-09-11): phase B is additive.** Replacing
+> MOVIE/TV in place would force half the transformation into one phase (every enum
+> consumer breaks; per-phase gates couldn't stay green). Instead B *adds* SCENE/SITE
+> and new columns; movie/tv/4K removal stays in phase F as planned. End state
+> identical, every intermediate tree compiles — same approach the reference fork used.
+
+| B1 | Add `SCENE='scene'`, `SITE='site'` to `MediaType` (keep MOVIE/TV until F); add `Media.tpdbId` (**varchar** nullable — site ids are numeric, scene ids uuid-shaped, opaque text key covers both) with partial unique index in the SAME migration; add `MediaRequest.failureReason` (varchar nullable, D5) and `MediaRequest.sentToServiceAt` (datetime nullable, idempotency guard for D2t); keep Season/SeasonRequest (D2). Hand-written SQLite migration included. | `server/constants/media.ts`, `server/entity/{Media,MediaRequest}.ts`, `server/migration/sqlite/*` (new file) | — |
+| B2 | Remove Postgres: delete `server/migration/postgres/`, `isPgsql` + pg config branches in datasource, `pg` dep, `compose.postgres.yaml`; simplify `DbColumnHelper`/`dbType` internals to sqlite-only (public API unchanged so entities don't churn). | `server/datasource.ts`, `server/utils/{dbType,DbColumnHelper}.ts`, `server/migration/postgres/` (delete), `package.json`, `compose.postgres.yaml` | — (parallel with B1) |
+| ~~B3~~ | Folded into F (fallout only exists once old types are removed). | — | — |
 
 ### Phase C — Services (Whisparr, Stash, Jellyfin adapt) + settings UI
 

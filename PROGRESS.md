@@ -10,9 +10,37 @@
   TPDB API probe: auth OK, Laravel-style pagination, **zero** StashDB-id coverage
   → Stash availability matching = path matching (PLAN.md D3 revised accordingly).
 
-## In progress (phase A)
+## Done (phase B)
 
-- A2+A5 (merged: TPDB client + tpdb settings block) — delegated, running
+- **B1 reviewed & accepted** — SCENE/SITE added to MediaType; `Media.tpdbId`
+  (varchar, partial unique index `UQ_media_tpdb_type` in the SAME migration,
+  smoke-tested incl. NULL-duplicates-allowed semantics);
+  `MediaRequest.failureReason` + `sentToServiceAt`. Migration
+  `1789161912799-AddSceneSiteFoundation` uses plain ALTER TABLE (justified +
+  documented in-file; sqlite 3.44 supports DROP COLUMN).
+- **B2 reviewed & accepted** — Postgres fully removed (19 migrations +
+  compose.postgres.yaml deleted — deletion scope verified exact; authorized by
+  project constraint "SQLite only"); datasource sqlite-only; `isPgsql`
+  hardcoded false + `resolveDbType` passthrough kept alive for the F sweep;
+  `pg` dep dropped, lockfile updated.
+- **Lead integration** — enum-widening fallout fixed: `BlocklistItem`/
+  `WatchlistItem.mediaType` → `` `${MediaType}` `` (nominal-enum-safe);
+  default arms in the two request.ts switches (profileName/canRemove for
+  scene/site defer to phase D); temporary `as 'movie' | 'tv'` casts at 12
+  frontend prop sites — these components are rebuilt in phase E anyway.
+- Gate: typecheck server+client clean, 197/197 tests, build green.
+- Strategy adjustment recorded in PLAN.md: phase B is additive; movie/tv/4K
+  removal stays in phase F so every intermediate tree keeps a green gate.
+
+## Done (phase A)
+
+- **A2+A5 done, reviewed & accepted** — TPDB client (`server/api/tpdb/`),
+  settings block, 15 unit tests. Live-verified params: `q=`, `page=`,
+  `site_id=`; no server-side sort exists (see open issues). Commit `2c34680f`.
+- **A3 done, reviewed & accepted** — Scene/Site/Performer models + mappers,
+  proxy-safe images only, defensive caps. Commit `33d20fcf`. Note: TPDB scene
+  `id` is uuid-shaped, `_id` numeric → `Media.tpdbId` becomes varchar in B1;
+  which id Whisparr v2 uses per episode gets pinned live in phase C.
 - **A4 done, reviewed & accepted** — `/imageproxy/tpdb/<cdn|thumb>/...` with a
   two-host allowlist (`cdn.theporndb.net`, `thumb.theporndb.net`); raw TPDB
   `image` fields point at arbitrary studio CDNs and are deliberately NOT

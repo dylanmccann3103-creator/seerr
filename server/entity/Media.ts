@@ -32,6 +32,10 @@ import Season from './Season';
 
 @Entity()
 @Index(['tmdbId', 'mediaType'])
+@Index('UQ_media_tpdb_type', ['tpdbId', 'mediaType'], {
+  unique: true,
+  where: '"tpdbId" IS NOT NULL',
+})
 class Media {
   public static async getRelatedMedia(
     user: User | undefined,
@@ -130,6 +134,12 @@ class Media {
   @Column({ nullable: true })
   @Index()
   public imdbId?: string;
+
+  // TPDB (ThePornDB) key for scene/site media types. Varchar deliberately:
+  // TPDB site ids are numeric but scene ids are uuid-shaped strings, so one
+  // opaque text key covers both.
+  @Column({ nullable: true, type: 'varchar' })
+  public tpdbId?: string | null;
 
   @Column({ type: 'int', default: MediaStatus.UNKNOWN })
   @Index()

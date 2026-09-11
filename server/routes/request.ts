@@ -234,6 +234,10 @@ requestRoutes.get<Record<string, unknown>, RequestResultsResponse>(
                 ?.profiles?.find((profile) => profile.id === r.profileId)?.name,
             };
           }
+          // scene/site requests have no radarr/sonarr profile; whisparr
+          // profile resolution lands with the phase D request flow
+          default:
+            return { ...r, profileName: undefined };
         }
       });
 
@@ -263,6 +267,9 @@ requestRoutes.get<Record<string, unknown>, RequestResultsResponse>(
                 ),
               };
             }
+            // scene/site removal support lands with the phase D request flow
+            default:
+              return { ...r, canRemove: false };
           }
         });
       }

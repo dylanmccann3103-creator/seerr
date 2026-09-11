@@ -1,14 +1,9 @@
-import { isPgsql } from '@server/utils/dbType';
 import type { ColumnOptions, ColumnType } from 'typeorm';
 import { Column } from 'typeorm';
-const pgTypeMapping: { [key: string]: ColumnType } = {
-  datetime: 'timestamp with time zone',
-};
 
+// ponytail: sqlite is the only backend now, so this is a passthrough. Signature kept
+// identical because entity files call it directly; sweep once those are revisited.
 export function resolveDbType(pgType: ColumnType): ColumnType {
-  if (isPgsql && pgType.toString() in pgTypeMapping) {
-    return pgTypeMapping[pgType.toString()];
-  }
   return pgType;
 }
 

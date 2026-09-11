@@ -667,6 +667,12 @@ export class MediaRequest {
   @Column({ default: false })
   public ignoreQuota: boolean;
 
+  @Column({ nullable: true, type: 'varchar' })
+  public failureReason?: string | null;
+
+  @DbAwareColumn({ type: 'datetime', nullable: true })
+  public sentToServiceAt?: Date | null;
+
   constructor(init?: Partial<MediaRequest>) {
     Object.assign(this, init);
   }
