@@ -12,6 +12,7 @@ const messages = defineMessages('components.Settings', {
   menuUsers: 'Users',
   menuPlexSettings: 'Plex',
   menuJellyfinSettings: '{mediaServerName}',
+  menuStashSettings: 'Stash',
   menuServices: 'Services',
   menuNetwork: 'Network',
   menuNotifications: 'Notifications',
@@ -50,6 +51,11 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
           route: '/settings/jellyfin',
           regex: /^\/settings\/jellyfin/,
         },
+    {
+      text: intl.formatMessage(messages.menuStashSettings),
+      route: '/settings/stash',
+      regex: /^\/settings\/stash/,
+    },
     {
       text: intl.formatMessage(messages.menuServices),
       route: '/settings/services',

@@ -9,6 +9,7 @@ import PageTitle from '@app/components/Common/PageTitle';
 import OverrideRuleModal from '@app/components/Settings/OverrideRule/OverrideRuleModal';
 import OverrideRuleTiles from '@app/components/Settings/OverrideRule/OverrideRuleTiles';
 import RadarrModal from '@app/components/Settings/RadarrModal';
+import SettingsWhisparr from '@app/components/Settings/SettingsWhisparr';
 import SonarrModal from '@app/components/Settings/SonarrModal';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
@@ -266,7 +267,8 @@ const SettingsServices = () => {
           intl.formatMessage(globalMessages.settings),
         ]}
       />
-      <div className="mb-6">
+      <SettingsWhisparr />
+      <div className="mb-6 mt-10">
         <h3 className="heading">
           {intl.formatMessage(messages.radarrsettings)}
         </h3>
