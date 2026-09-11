@@ -697,6 +697,93 @@ components:
         - is4k
         - enableSeasonFolders
         - isDefault
+    WhisparrSettings:
+      type: object
+      description: Single-server Whisparr configuration (this app targets exactly one Whisparr v2 instance).
+      properties:
+        enabled:
+          type: boolean
+          example: false
+        hostname:
+          type: string
+          example: '127.0.0.1'
+        port:
+          type: number
+          example: 6969
+        useSsl:
+          type: boolean
+          example: false
+        baseUrl:
+          type: string
+        apiKey:
+          type: string
+          example: 'exampleapikey'
+        activeProfileId:
+          type: number
+          example: 1
+        activeProfileName:
+          type: string
+          example: 720p/1080p
+        activeDirectory:
+          type: string
+          example: '/data'
+        monitorNewItems:
+          type: string
+          enum: [all, none]
+          example: 'none'
+        searchOnRequest:
+          type: boolean
+          example: false
+        externalUrl:
+          type: string
+          example: http://whisparr.example.com
+        tagRequests:
+          type: boolean
+          example: false
+      required:
+        - enabled
+        - hostname
+        - port
+        - useSsl
+        - apiKey
+        - activeProfileId
+        - activeProfileName
+        - activeDirectory
+        - monitorNewItems
+        - searchOnRequest
+        - tagRequests
+    StashSettings:
+      type: object
+      description: Stash connection + Whisparr-to-Stash path mappings, used for availability matching.
+      properties:
+        enabled:
+          type: boolean
+          example: false
+        url:
+          type: string
+          example: 'http://127.0.0.1:9999'
+        apiKey:
+          type: string
+          example: 'exampleapikey'
+        pathMappings:
+          type: array
+          items:
+            type: object
+            properties:
+              from:
+                type: string
+                example: '/data'
+              to:
+                type: string
+                example: '/stash-data'
+            required:
+              - from
+              - to
+      required:
+        - enabled
+        - url
+        - apiKey
+        - pathMappings
     ServarrTag:
       type: object
       properties:
@@ -3051,6 +3138,177 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SonarrSettings'
+  /settings/whisparr:
+    get:
+      summary: Get Whisparr settings
+      description: Returns the single Whisparr server configuration.
+      tags:
+        - settings
+      responses:
+        '200':
+          description: 'Values were returned'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhisparrSettings'
+    put:
+      summary: Update Whisparr settings
+      description: Replaces the Whisparr server configuration with the provided values.
+      tags:
+        - settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WhisparrSettings'
+      responses:
+        '200':
+          description: 'Whisparr settings updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhisparrSettings'
+  /settings/whisparr/test:
+    post:
+      summary: Test Whisparr configuration
+      description: Tests if the Whisparr configuration is valid. Returns version, profiles, root folders and tags on success.
+      tags:
+        - settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                hostname:
+                  type: string
+                  example: '127.0.0.1'
+                port:
+                  type: number
+                  example: 6969
+                apiKey:
+                  type: string
+                  example: yourapikey
+                useSsl:
+                  type: boolean
+                  example: false
+                baseUrl:
+                  type: string
+              required:
+                - hostname
+                - port
+                - apiKey
+                - useSsl
+      responses:
+        '200':
+          description: Succesfully connected to Whisparr instance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: '2.0.0.0'
+                  profiles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ServiceProfile'
+                  rootFolders:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: number
+                        path:
+                          type: string
+                  tags:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: number
+                        label:
+                          type: string
+                  urlBase:
+                    type: string
+  /settings/stash:
+    get:
+      summary: Get Stash settings
+      description: Returns the Stash connection configuration and path mappings.
+      tags:
+        - settings
+      responses:
+        '200':
+          description: 'Values were returned'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StashSettings'
+    put:
+      summary: Update Stash settings
+      description: Replaces the Stash configuration with the provided values.
+      tags:
+        - settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StashSettings'
+      responses:
+        '200':
+          description: 'Stash settings updated'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StashSettings'
+  /settings/stash/test:
+    post:
+      summary: Test Stash configuration
+      description: Tests if the Stash configuration is valid. Returns system status and scene count on success.
+      tags:
+        - settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  example: 'http://127.0.0.1:9999'
+                apiKey:
+                  type: string
+                  example: yourapikey
+              required:
+                - url
+                - apiKey
+      responses:
+        '200':
+          description: Succesfully connected to Stash instance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: object
+                    properties:
+                      databaseSchema:
+                        type: number
+                        nullable: true
+                      appSchema:
+                        type: number
+                      status:
+                        type: string
+                  sceneCount:
+                    type: number
   /settings/public:
     get:
       summary: Get public settings

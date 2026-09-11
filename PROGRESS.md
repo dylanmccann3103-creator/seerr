@@ -1,5 +1,21 @@
 # PROGRESS.md
 
+## In progress (phase C)
+
+- **C1 done, reviewed & accepted** — WhisparrAPI (commit `580e2ec6`): sonarr
+  port, calendar-year seasons, no language profiles (asserted in tests),
+  episode↔TPDB-scene-id field left TODO pending live access. 18 tests.
+- **C2 done, reviewed & accepted** — StashAPI GraphQL client (same commit),
+  filter shapes verified against public stashapp schema. 9 tests.
+- C3 (settings backend: single-server WhisparrSettings with searchOnRequest
+  default OFF, StashSettings + pathMappings, Jellyfin `enabled` toggle,
+  routes + seerr-api.yml entries) — delegated, running.
+- C4/C5 (scanners) resequenced to AFTER live keys arrive — they are the
+  verification-heavy parts. C6 (settings UI) follows C3.
+- **Blocked on .env**: WHISPARR_API_KEY, STASH_URL, STASH_API_KEY still
+  missing (only TPDB_API_KEY present). Also open: does Stash scrape with
+  the TPDB scraper? (Determines D3 tier-2 id matching.)
+
 ## Done
 
 - **Plan** — PLAN.md written, D1–D5 approved (checkpoint 1 passed 2026-09-11).

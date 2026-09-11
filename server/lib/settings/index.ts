@@ -55,6 +55,9 @@ export interface JellyfinSettings {
   libraries: Library[];
   serverId: string;
   apiKey: string;
+  // Gates availability/library scanning only — never authentication. Defaults
+  // to true so existing installs keep their current behavior.
+  enabled: boolean;
 }
 export interface TautulliSettings {
   hostname?: string;
@@ -101,6 +104,42 @@ export interface SonarrSettings extends DVRSettings {
   animeTags?: number[];
   enableSeasonFolders: boolean;
   monitorNewItems: 'all' | 'none';
+}
+
+// Single Whisparr server: this app targets exactly one Whisparr v2 instance,
+// so (unlike Sonarr/Radarr) this is not an array and has no id/is4k/isDefault.
+// Deliberately not `extends DVRSettings` — it doesn't carry a multi-server
+// DVR's bookkeeping fields (id, tags, is4k, isDefault, syncEnabled,
+// overrideRule); it only shares the hostname/port/useSsl/baseUrl/apiKey shape
+// that ServarrBase.buildUrl reads.
+export interface WhisparrSettings {
+  enabled: boolean;
+  hostname: string;
+  port: number;
+  useSsl: boolean;
+  baseUrl?: string;
+  apiKey: string;
+  activeProfileId: number;
+  activeProfileName: string;
+  activeDirectory: string;
+  monitorNewItems: 'all' | 'none';
+  // ponytail: project constraint — no real downloads while this fork is under
+  // development, so this always defaults to false regardless of upstream
+  // Whisparr behavior. Flip the default once search dispatch is verified.
+  searchOnRequest: boolean;
+  externalUrl?: string;
+  tagRequests: boolean;
+}
+
+// Maps a Whisparr container path to the equivalent Stash container path, so
+// availability matching (a later phase) can translate a file path Whisparr
+// reports into a path Stash's scene index understands. No matching logic
+// lives here — this is config only.
+export interface StashSettings {
+  enabled: boolean;
+  url: string;
+  apiKey: string;
+  pathMappings: { from: string; to: string }[];
 }
 
 interface Quota {
@@ -391,6 +430,8 @@ export interface AllSettings {
   tautulli: TautulliSettings;
   radarr: RadarrSettings[];
   sonarr: SonarrSettings[];
+  whisparr: WhisparrSettings;
+  stash: StashSettings;
   public: PublicSettings;
   notifications: NotificationSettings;
   jobs: Record<JobId, JobSettings>;
@@ -462,6 +503,7 @@ class Settings {
         libraries: [],
         serverId: '',
         apiKey: '',
+        enabled: true,
       },
       tautulli: {},
       metadataSettings: {
@@ -473,6 +515,26 @@ class Settings {
       },
       radarr: [],
       sonarr: [],
+      whisparr: {
+        enabled: false,
+        hostname: '',
+        port: 6969,
+        useSsl: false,
+        apiKey: '',
+        activeProfileId: 0,
+        activeProfileName: '',
+        activeDirectory: '',
+        monitorNewItems: 'none',
+        // ponytail: no real downloads during development, see WhisparrSettings.
+        searchOnRequest: false,
+        tagRequests: false,
+      },
+      stash: {
+        enabled: false,
+        url: '',
+        apiKey: '',
+        pathMappings: [],
+      },
       public: {
         initialized: false,
       },
@@ -718,6 +780,22 @@ class Settings {
 
   set tpdb(data: TpdbSettings) {
     this.data.tpdb = data;
+  }
+
+  get whisparr(): WhisparrSettings {
+    return this.data.whisparr;
+  }
+
+  set whisparr(data: WhisparrSettings) {
+    this.data.whisparr = data;
+  }
+
+  get stash(): StashSettings {
+    return this.data.stash;
+  }
+
+  set stash(data: StashSettings) {
+    this.data.stash = data;
   }
 
   get public(): PublicSettings {
