@@ -29,6 +29,13 @@
 
 ## Open issues
 
+- **DoD 2 deviation — "popular sites":** TPDB's public API has no working
+  sort/order params (verified live; invalid values silently accepted). Recent
+  scenes works (default order = newest first); sites can only be listed in
+  default (alphabetical) order. Options: ship "Sites" slider as-is, or derive
+  popularity locally from request counts later. Proceeding with default order
+  unless directed otherwise.
+
 - Per-episode TPDB scene-id location in Whisparr v2 unverified — needs live
   `/episode` access, deferred to phase C (agreed: no live Whisparr until C).
 - Stash instance details (URL/key, whether it scrapes TPDB) — needed from C2.
