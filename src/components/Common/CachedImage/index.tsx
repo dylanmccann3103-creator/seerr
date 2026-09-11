@@ -6,7 +6,7 @@ const imageLoader: ImageLoader = ({ src }) => src;
 
 export type CachedImageProps = ImageProps & {
   src: string;
-  type: 'tmdb' | 'avatar' | 'tvdb';
+  type: 'tmdb' | 'avatar' | 'tvdb' | 'tpdb';
 };
 
 /**
@@ -31,6 +31,21 @@ const CachedImage = ({ src, type, ...props }: CachedImageProps) => {
             /^https:\/\/artworks\.thetvdb\.com\//,
             '/imageproxy/tvdb/'
           )
+        : src;
+  } else if (type === 'tpdb') {
+    // TPDB serves images from two hosts: its main CDN and its imgproxy
+    // thumbnail resizer. Both route through the proxy under a sub-path.
+    imageUrl =
+      currentSettings.cacheImages && !src.startsWith('/')
+        ? src
+            .replace(
+              /^https:\/\/cdn\.theporndb\.net\//,
+              '/imageproxy/tpdb/cdn/'
+            )
+            .replace(
+              /^https:\/\/thumb\.theporndb\.net\//,
+              '/imageproxy/tpdb/thumb/'
+            )
         : src;
   } else if (type === 'avatar') {
     // jellyfin avatar (if any)

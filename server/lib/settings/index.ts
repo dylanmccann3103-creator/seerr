@@ -118,6 +118,12 @@ export interface MetadataSettings {
   anime: MetadataProviderType;
 }
 
+// ThePornDB API key. Effective runtime key (settings || TPDB_API_KEY env fallback)
+// is resolved in server/api/tpdb/index.ts, not here.
+export interface TpdbSettings {
+  apiKey: string;
+}
+
 export interface ProxySettings {
   enabled: boolean;
   hostname: string;
@@ -390,6 +396,7 @@ export interface AllSettings {
   jobs: Record<JobId, JobSettings>;
   network: NetworkSettings;
   metadataSettings: MetadataSettings;
+  tpdb: TpdbSettings;
   migrations: string[];
 }
 
@@ -460,6 +467,9 @@ class Settings {
       metadataSettings: {
         tv: MetadataProviderType.TMDB,
         anime: MetadataProviderType.TMDB,
+      },
+      tpdb: {
+        apiKey: '',
       },
       radarr: [],
       sonarr: [],
@@ -700,6 +710,14 @@ class Settings {
 
   set sonarr(data: SonarrSettings[]) {
     this.data.sonarr = data;
+  }
+
+  get tpdb(): TpdbSettings {
+    return this.data.tpdb;
+  }
+
+  set tpdb(data: TpdbSettings) {
+    this.data.tpdb = data;
   }
 
   get public(): PublicSettings {

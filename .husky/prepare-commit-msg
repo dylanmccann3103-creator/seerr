@@ -1,2 +1,5 @@
-
-exec < /dev/tty && npx cz --hook || true
+# Launch commitizen only for interactive commits; non-interactive commits
+# (CI, scripts) skip it — the failing `exec < /dev/tty` used to abort them.
+if [ -t 1 ] && { : < /dev/tty; } 2>/dev/null; then
+  exec < /dev/tty && npx cz --hook || true
+fi

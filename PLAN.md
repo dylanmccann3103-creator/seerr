@@ -125,6 +125,16 @@ lint, tests, build; update PROGRESS.md; commit.
 | A4 | Image proxy generalization: `/imageproxy/tpdb/*` (+ keep avatar path), remove tmdb/tvdb proxy targets; `CachedImage` rewrite rule. | `server/routes/imageproxy.ts`, `server/lib/imageproxy.ts`, `src/components/Common/CachedImage/*` | A2 |
 | A5 | Settings: `metadata` section (provider + API key, from settings.json / env), TMDB key removal from `themoviedb/index.ts` is deferred to F (file dies there). | `server/lib/settings/index.ts` (metadata block only) | — |
 
+> **Reference-repo findings folded in (seerrng-reference, explored 2026-09-11):**
+> (1) B2: the unique index on the new foreign-id column goes in the **same migration**
+> that creates it (reference retrofitted theirs months later — avoid). Clean shape:
+> unique `(tpdbId, mediaType)`. (2) Performers stay browse-only with no Media row,
+> mirroring their artist model. (3) D3t adds a `serverId: 0` falsy-vs-unset regression
+> test (bug they shipped). (4) F2: the mediaType enum is duplicated at 10+ spots in
+> `seerr-api.yml` — sweep by grep, not memory. (5) Their per-backend OverrideRule
+> columns don't scale; we have one backend, so `whisparrServiceId` replaces the two
+> existing columns rather than joining them.
+
 ### Phase B — Data model
 
 | Task | Description | Files | Depends |

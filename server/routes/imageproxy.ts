@@ -30,6 +30,27 @@ function initTvdbImageProxy() {
   return _tvdbImageProxy;
 }
 
+// TPDB serves images from multiple hosts (its main CDN and its imgproxy
+// thumbnail resizer). Only these two are ever proxied; the sub-host is the
+// first path segment after '/tpdb/' (e.g. /imageproxy/tpdb/cdn/...).
+const tpdbHosts = {
+  cdn: 'https://cdn.theporndb.net',
+  thumb: 'https://thumb.theporndb.net',
+} as const;
+const _tpdbImageProxies: Partial<Record<keyof typeof tpdbHosts, ImageProxy>> =
+  {};
+function initTpdbImageProxy(host: keyof typeof tpdbHosts) {
+  if (!_tpdbImageProxies[host]) {
+    _tpdbImageProxies[host] = new ImageProxy(`tpdb-${host}`, tpdbHosts[host], {
+      rateLimitOptions: {
+        maxRequests: 20,
+        maxRPS: 50,
+      },
+    });
+  }
+  return _tpdbImageProxies[host] as ImageProxy;
+}
+
 router.get<{
   type: string;
   path: string[];
@@ -47,6 +68,21 @@ router.get<{
       imageData = await initTmdbImageProxy().getImage(imagePath);
     } else if (req.params.type === 'tvdb') {
       imageData = await initTvdbImageProxy().getImage(imagePath);
+    } else if (req.params.type === 'tpdb') {
+      const [tpdbHost, ...tpdbPath] = req.params.path;
+
+      if (!(tpdbHost in tpdbHosts)) {
+        logger.error('Unsupported TPDB image host', {
+          imagePath,
+          host: tpdbHost,
+        });
+        res.status(400).send('Unsupported TPDB image host');
+        return;
+      }
+
+      imageData = await initTpdbImageProxy(
+        tpdbHost as keyof typeof tpdbHosts
+      ).getImage('/' + tpdbPath.join('/'));
     } else {
       logger.error('Unsupported image type', {
         imagePath,
