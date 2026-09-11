@@ -11,7 +11,8 @@ export type AvailableCacheIds =
   | 'plextv'
   | 'plexwatchlist'
   | 'tvdb'
-  | 'tpdb';
+  | 'tpdb'
+  | 'whisparr';
 
 const DEFAULT_TTL = 300;
 
@@ -51,6 +52,10 @@ const TVDB_MAX_KEYS = 500;
 
 // One key per scene/site/performer lookup or search page.
 const TPDB_MAX_KEYS = 1000;
+
+// Same shape as Sonarr: rolling quality profile / root folder lookups, a few
+// keys per server.
+const WHISPARR_MAX_KEYS = 64;
 
 export interface CacheStats {
   hits: number;
@@ -257,6 +262,9 @@ class CacheManager {
     tpdb: new Cache('tpdb', 'ThePornDB API', {
       stdTtl: 21600,
       max: TPDB_MAX_KEYS,
+    }),
+    whisparr: new Cache('whisparr', 'Whisparr API', {
+      max: WHISPARR_MAX_KEYS,
     }),
   };
 
