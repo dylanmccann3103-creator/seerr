@@ -7,14 +7,15 @@
   episode↔TPDB-scene-id field left TODO pending live access. 18 tests.
 - **C2 done, reviewed & accepted** — StashAPI GraphQL client (same commit),
   filter shapes verified against public stashapp schema. 9 tests.
-- C3 (settings backend: single-server WhisparrSettings with searchOnRequest
-  default OFF, StashSettings + pathMappings, Jellyfin `enabled` toggle,
-  routes + seerr-api.yml entries) — delegated, running.
-- C4/C5 (scanners) resequenced to AFTER live keys arrive — they are the
-  verification-heavy parts. C6 (settings UI) follows C3.
-- **Blocked on .env**: WHISPARR_API_KEY, STASH_URL, STASH_API_KEY still
-  missing (only TPDB_API_KEY present). Also open: does Stash scrape with
-  the TPDB scraper? (Determines D3 tier-2 id matching.)
+- **C3 done, reviewed & accepted** (`9b55c870`) — settings backend + routes
+  + OpenAPI entries; searchOnRequest default OFF (ponytail-commented).
+- **C6 done, reviewed & accepted** (`a4686a2e`) — SettingsWhisparr on the
+  services page, Stash tab + path-mapping editor, 57 i18n keys.
+- **PHASE C HARD-BLOCKED on .env**: WHISPARR_API_KEY, STASH_URL,
+  STASH_API_KEY still missing (only TPDB_API_KEY present). Blocked work:
+  C4/C5 scanners, episode↔TPDB-scene-id verification (gates phase D scene
+  dispatch), live connection tests of everything built so far. Also open:
+  does Stash scrape with the TPDB scraper? (D3 tier-2 id matching.)
 
 ## Done
 
