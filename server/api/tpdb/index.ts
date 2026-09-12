@@ -146,6 +146,18 @@ class Tpdb extends ExternalAPI {
     });
   };
 
+  // `performer_id` takes the global performer's numeric `_id` (live-verified).
+  public getPerformerScenes = async ({
+    performerId,
+    page = 1,
+  }: PageOptions & { performerId: number }): Promise<
+    TpdbPaginatedResponse<TpdbScene>
+  > => {
+    return this.get<TpdbPaginatedResponse<TpdbScene>>('/scenes', {
+      params: { performer_id: performerId, page },
+    });
+  };
+
   public getSiteScenes = async ({
     siteId,
     page = 1,

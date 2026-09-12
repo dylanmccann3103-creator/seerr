@@ -98,6 +98,31 @@ class Media {
     }
   }
 
+  // tpdbId twin of getRelatedMedia for scene/site rows.
+  public static async getRelatedTpdbMedia(
+    user: User | undefined,
+    items: { tpdbId: string; mediaType: MediaType }[]
+  ): Promise<Media[]> {
+    if (items.length === 0) {
+      return [];
+    }
+    try {
+      const media = await getRepository(Media)
+        .createQueryBuilder('media')
+        .leftJoinAndSelect('media.seasons', 'season')
+        .where('media.tpdbId IN (:...ids)', {
+          ids: [...new Set(items.map((i) => i.tpdbId))],
+        })
+        .getMany();
+      return media.filter((m) =>
+        items.some((i) => i.tpdbId === m.tpdbId && i.mediaType === m.mediaType)
+      );
+    } catch (e) {
+      logger.error(e.message);
+      return [];
+    }
+  }
+
   public static async getMedia(
     id: number,
     mediaType: MediaType

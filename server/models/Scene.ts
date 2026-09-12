@@ -57,10 +57,12 @@ const mapSceneSiteRef = (site: TpdbSite): SceneSiteRef => ({
   name: site.name,
 });
 
+// Scene payloads embed site-performers; only the parent's id resolves on
+// /performers/{id} (live-verified 2026-09-12).
 const mapScenePerformerRef = (
   performer: TpdbScenePerformer
 ): ScenePerformerRef => ({
-  id: numericId(performer._id),
+  id: numericId(performer.parent?._id ?? performer._id),
   name: performer.name,
   posterPath: performer.image ?? performer.thumbnail ?? undefined,
 });

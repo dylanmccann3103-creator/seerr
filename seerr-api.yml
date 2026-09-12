@@ -5878,6 +5878,178 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Company'
+  /discover/scenes:
+    get:
+      summary: Discover recent scenes
+      description: Discover recent scenes from TPDB, joined with local media status.
+      tags:
+        - search
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: number
+            example: 1
+            default: 1
+      responses:
+        '200':
+          description: Results returned
+          content:
+            application/json:
+              schema:
+                type: object
+  /discover/sites:
+    get:
+      summary: Discover sites
+      description: Discover sites from TPDB, joined with local media status.
+      tags:
+        - search
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: number
+            example: 1
+            default: 1
+      responses:
+        '200':
+          description: Results returned
+          content:
+            application/json:
+              schema:
+                type: object
+  /discover/performers:
+    get:
+      summary: Discover performers
+      description: Discover performers from TPDB, joined with local media status.
+      tags:
+        - search
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: number
+            example: 1
+            default: 1
+      responses:
+        '200':
+          description: Results returned
+          content:
+            application/json:
+              schema:
+                type: object
+  /scene/{sceneId}:
+    get:
+      summary: Get scene details
+      description: Get scene details from TPDB.
+      tags:
+        - scene
+      parameters:
+        - in: path
+          name: sceneId
+          required: true
+          schema:
+            type: number
+            example: 92
+      responses:
+        '200':
+          description: Returned details
+          content:
+            application/json:
+              schema:
+                type: object
+  /site/{siteId}:
+    get:
+      summary: Get site details
+      description: Get site details from TPDB.
+      tags:
+        - site
+      parameters:
+        - in: path
+          name: siteId
+          required: true
+          schema:
+            type: number
+            example: 92
+      responses:
+        '200':
+          description: Returned details
+          content:
+            application/json:
+              schema:
+                type: object
+  /site/{siteId}/scenes:
+    get:
+      summary: Get scenes of a site
+      description: Get scenes of a site from TPDB.
+      tags:
+        - site
+      parameters:
+        - in: path
+          name: siteId
+          required: true
+          schema:
+            type: number
+            example: 92
+        - in: query
+          name: page
+          schema:
+            type: number
+            example: 1
+            default: 1
+      responses:
+        '200':
+          description: Returned details
+          content:
+            application/json:
+              schema:
+                type: object
+  /performer/{performerId}:
+    get:
+      summary: Get performer details
+      description: Get performer details from TPDB.
+      tags:
+        - performer
+      parameters:
+        - in: path
+          name: performerId
+          required: true
+          schema:
+            type: number
+            example: 92
+      responses:
+        '200':
+          description: Returned details
+          content:
+            application/json:
+              schema:
+                type: object
+  /performer/{performerId}/scenes:
+    get:
+      summary: Get scenes of a performer
+      description: Get scenes of a performer from TPDB.
+      tags:
+        - performer
+      parameters:
+        - in: path
+          name: performerId
+          required: true
+          schema:
+            type: number
+            example: 92
+        - in: query
+          name: page
+          schema:
+            type: number
+            example: 1
+            default: 1
+      responses:
+        '200':
+          description: Returned details
+          content:
+            application/json:
+              schema:
+                type: object
   /discover/movies:
     get:
       summary: Discover movies

@@ -19,6 +19,8 @@ export interface SiteDetails {
   posterPath?: string;
   logoPath?: string;
   mediaInfo?: Media;
+  // Calendar-year seasons as Whisparr lists them; filled by the site route.
+  seasons?: { seasonNumber: number }[];
 }
 
 const mapSiteRef = (site: TpdbSite): SiteRef => ({

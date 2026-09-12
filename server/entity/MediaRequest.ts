@@ -727,7 +727,7 @@ export class MediaRequest {
   }
 
   // "All years" of a site = the calendar-year seasons Whisparr's lookup lists.
-  private static async whisparrYears(siteId: number): Promise<number[]> {
+  public static async whisparrYears(siteId: number): Promise<number[]> {
     const { whisparr } = getSettings();
     if (!whisparr.enabled || !whisparr.apiKey || !whisparr.hostname) {
       throw new NoSeasonsAvailableError(

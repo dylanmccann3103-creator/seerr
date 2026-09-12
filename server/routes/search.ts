@@ -1,51 +1,58 @@
 import TheMovieDb from '@server/api/themoviedb';
-import type { TmdbSearchMultiResponse } from '@server/api/themoviedb/interfaces';
+import Tpdb from '@server/api/tpdb';
+import { MediaType } from '@server/constants/media';
 import Media from '@server/entity/Media';
-import { findSearchProvider } from '@server/lib/search';
 import logger from '@server/logger';
-import { mapSearchResults } from '@server/models/Search';
+import { mapPerformerResult } from '@server/models/Performer';
+import { mapSceneResult } from '@server/models/Scene';
+import { mapSiteResult } from '@server/models/Site';
 import { Router } from 'express';
 
 const searchRoutes = Router();
 
+// TPDB has no multi-search: sites and performers ride along on page 1,
+// scenes paginate. Prefix providers (tmdb:/imdb:/tvdb:) are TMDB-only and gone.
 searchRoutes.get('/', async (req, res, next) => {
-  const queryString = req.query.query as string;
-  const searchProvider = findSearchProvider(queryString.toLowerCase());
-  let results: TmdbSearchMultiResponse;
+  const query = String(req.query.query ?? '');
+  const page = Number(req.query.page) || 1;
+  const tpdb = new Tpdb();
 
   try {
-    if (searchProvider) {
-      const [id] = queryString
-        .toLowerCase()
-        .match(searchProvider.pattern) as RegExpMatchArray;
-      results = await searchProvider.search({
-        id,
-        language: (req.query.language as string) ?? req.locale,
-        query: queryString,
-      });
-    } else {
-      const tmdb = new TheMovieDb();
+    const [scenes, sites, performers] = await Promise.all([
+      tpdb.searchScenes({ query, page }),
+      page === 1 ? tpdb.searchSites({ query }) : null,
+      page === 1 ? tpdb.searchPerformers({ query }) : null,
+    ]);
 
-      results = await tmdb.searchMulti({
-        query: queryString,
-        page: Number(req.query.page),
-        language: (req.query.language as string) ?? req.locale,
-      });
-    }
-
-    const media = await Media.getRelatedMedia(
-      req.user,
-      results.results.map((result) => ({
-        tmdbId: result.id,
-        mediaType: result.media_type,
-      }))
-    );
+    const media = await Media.getRelatedTpdbMedia(req.user, [
+      ...scenes.data.map((scene) => ({
+        tpdbId: String(scene._id),
+        mediaType: MediaType.SCENE,
+      })),
+      ...(sites?.data ?? []).map((site) => ({
+        tpdbId: String(site.id),
+        mediaType: MediaType.SITE,
+      })),
+    ]);
+    const find = (tpdbId: string, mediaType: MediaType) =>
+      media.find((m) => m.tpdbId === tpdbId && m.mediaType === mediaType);
 
     return res.status(200).json({
-      page: results.page,
-      totalPages: results.total_pages,
-      totalResults: results.total_results,
-      results: mapSearchResults(results.results, media),
+      page: scenes.meta.current_page,
+      totalPages: scenes.meta.last_page,
+      totalResults:
+        scenes.meta.total +
+        (sites?.meta.total ?? 0) +
+        (performers?.meta.total ?? 0),
+      results: [
+        ...(sites?.data ?? []).map((site) =>
+          mapSiteResult(site, find(String(site.id), MediaType.SITE))
+        ),
+        ...(performers?.data ?? []).map(mapPerformerResult),
+        ...scenes.data.map((scene) =>
+          mapSceneResult(scene, find(String(scene._id), MediaType.SCENE))
+        ),
+      ],
     });
   } catch (e) {
     logger.debug('Something went wrong retrieving search results', {
