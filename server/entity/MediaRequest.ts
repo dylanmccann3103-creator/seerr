@@ -1,10 +1,13 @@
+import WhisparrAPI from '@server/api/servarr/whisparr';
 import TheMovieDb from '@server/api/themoviedb';
 import { ANIME_KEYWORD_ID } from '@server/api/themoviedb/constants';
 import type { TmdbKeyword } from '@server/api/themoviedb/interfaces';
+import Tpdb from '@server/api/tpdb';
 import {
   MediaRequestStatus,
   MediaStatus,
   MediaType,
+  isWhisparrType,
 } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import OverrideRule from '@server/entity/OverrideRule';
@@ -13,6 +16,8 @@ import notificationManager, { Notification } from '@server/lib/notifications';
 import { Permission } from '@server/lib/permissions';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
+import { mapSceneDetails } from '@server/models/Scene';
+import { mapSiteDetails } from '@server/models/Site';
 import { DbAwareColumn, resolveDbType } from '@server/utils/DbColumnHelper';
 import requestLock from '@server/utils/requestLock';
 import { truncate } from 'lodash';
@@ -86,6 +91,15 @@ export class MediaRequest {
 
     if (!requestUser) {
       throw new Error('User missing from request context.');
+    }
+
+    if (isWhisparrType(requestBody.mediaType)) {
+      return MediaRequest.createWhisparrRequest(
+        requestBody,
+        user,
+        requestUser,
+        options
+      );
     }
 
     if (
@@ -565,6 +579,169 @@ export class MediaRequest {
     }
   }
 
+  // Scene = one item (movie-shaped), site = year seasons (series-shaped);
+  // see PLAN.md D2. Validated against TPDB, keyed on Media.tpdbId.
+  private static async createWhisparrRequest(
+    requestBody: MediaRequestBody,
+    user: User,
+    requestUser: User,
+    options: MediaRequestOptions
+  ): Promise<MediaRequest> {
+    const mediaRepository = getRepository(Media);
+    const requestRepository = getRepository(MediaRequest);
+    const type = requestBody.mediaType;
+    const label = type === MediaType.SCENE ? 'Scene' : 'Site';
+    const tpdbId = String(requestBody.mediaId);
+
+    if (!requestUser.hasPermission(Permission.REQUEST)) {
+      throw new RequestPermissionError(
+        `You do not have permission to make ${label.toLowerCase()} requests.`
+      );
+    }
+
+    // ponytail: scenes draw on the movie quota, site years on the tv quota.
+    // Separate scene/site quota columns only if the UI ever needs to differ.
+    const quotas = await requestUser.getQuota();
+    const quota = type === MediaType.SCENE ? quotas.movie : quotas.tv;
+    const canBypassQuota = user.hasPermission(Permission.MANAGE_REQUESTS);
+    const ignoreQuota =
+      requestBody.ignoreQuota === true &&
+      canBypassQuota &&
+      (quota.limit ?? 0) > 0;
+
+    if (!ignoreQuota) {
+      if (requestBody.ignoreQuota && !canBypassQuota) {
+        throw new RequestPermissionError(
+          'You do not have permission to bypass user quota limits.'
+        );
+      } else if (quota.restricted) {
+        throw new QuotaRestrictedError(`${label} Quota exceeded.`);
+      }
+    }
+
+    // Unknown id -> TPDB 404 -> plain error (500 on the route), same as TMDB.
+    const tpdb = new Tpdb();
+    if (type === MediaType.SCENE) {
+      await tpdb.getScene({ sceneId: tpdbId });
+    } else {
+      await tpdb.getSite({ siteId: requestBody.mediaId });
+    }
+
+    let media = await mediaRepository.findOne({
+      where: { tpdbId, mediaType: type },
+      relations: ['requests'],
+    });
+
+    if (!media) {
+      media = new Media({
+        tmdbId: 0,
+        tpdbId,
+        mediaType: type,
+        status: MediaStatus.PENDING,
+        status4k: MediaStatus.UNKNOWN,
+      });
+    } else {
+      if (media.status === MediaStatus.BLOCKLISTED) {
+        throw new BlocklistedMediaError('This media is blocklisted.');
+      }
+      if (
+        media.status === MediaStatus.UNKNOWN ||
+        media.status === MediaStatus.DELETED
+      ) {
+        media.status = MediaStatus.PENDING;
+      }
+    }
+
+    const activeRequests = (media.requests ?? []).filter(
+      (r) =>
+        r.status !== MediaRequestStatus.DECLINED &&
+        r.status !== MediaRequestStatus.COMPLETED
+    );
+    const autoApprove = user.hasPermission(
+      [Permission.AUTO_APPROVE, Permission.MANAGE_REQUESTS],
+      { type: 'or' }
+    );
+    const status = autoApprove
+      ? MediaRequestStatus.APPROVED
+      : MediaRequestStatus.PENDING;
+    const base: Partial<MediaRequest> = {
+      type,
+      status,
+      media,
+      requestedBy: requestUser,
+      modifiedBy: autoApprove ? user : undefined,
+      is4k: false,
+      profileId: requestBody.profileId,
+      rootFolder: requestBody.rootFolder,
+      tags: requestBody.tags,
+      isAutoRequest: options.isAutoRequest ?? false,
+      ignoreQuota,
+    };
+
+    if (type === MediaType.SCENE) {
+      if (activeRequests.length > 0) {
+        throw new DuplicateMediaRequestError(
+          'Request for this media already exists.'
+        );
+      }
+      await mediaRepository.save(media);
+      const request = new MediaRequest(base);
+      await requestRepository.save(request);
+      return request;
+    }
+
+    const requestedYears =
+      requestBody.seasons === 'all'
+        ? await MediaRequest.whisparrYears(requestBody.mediaId)
+        : (requestBody.seasons ?? []);
+    const takenYears = new Set([
+      ...activeRequests.flatMap((r) => r.seasons.map((s) => s.seasonNumber)),
+      ...(media.seasons ?? [])
+        .filter(
+          (s) =>
+            s.status !== MediaStatus.UNKNOWN && s.status !== MediaStatus.DELETED
+        )
+        .map((s) => s.seasonNumber),
+    ]);
+    const finalYears = requestedYears.filter((y) => !takenYears.has(y));
+
+    if (finalYears.length === 0) {
+      throw new NoSeasonsAvailableError('No years available to request');
+    } else if (
+      !ignoreQuota &&
+      quota.limit &&
+      finalYears.length > (quota.remaining ?? 0)
+    ) {
+      throw new QuotaRestrictedError('Site Quota exceeded.');
+    }
+
+    await mediaRepository.save(media);
+    const request = new MediaRequest({
+      ...base,
+      seasons: finalYears.map(
+        (seasonNumber) => new SeasonRequest({ seasonNumber, status })
+      ),
+    });
+    await requestRepository.save(request);
+    return request;
+  }
+
+  // "All years" of a site = the calendar-year seasons Whisparr's lookup lists.
+  private static async whisparrYears(siteId: number): Promise<number[]> {
+    const { whisparr } = getSettings();
+    if (!whisparr.enabled || !whisparr.apiKey || !whisparr.hostname) {
+      throw new NoSeasonsAvailableError(
+        'Whisparr is not configured; request specific years instead'
+      );
+    }
+    const api = new WhisparrAPI({
+      apiKey: whisparr.apiKey,
+      url: WhisparrAPI.buildUrl(whisparr, '/api/v3'),
+    });
+    const site = await api.getSiteByTpdbId(siteId);
+    return site.seasons.map((s) => s.seasonNumber).filter((year) => year > 0);
+  }
+
   @PrimaryGeneratedColumn()
   public id: number;
 
@@ -792,7 +969,14 @@ export class MediaRequest {
     const tmdb = new TheMovieDb();
 
     try {
-      const mediaType = entity.type === MediaType.MOVIE ? 'Movie' : 'Series';
+      const mediaType =
+        entity.type === MediaType.MOVIE
+          ? 'Movie'
+          : entity.type === MediaType.SCENE
+            ? 'Scene'
+            : entity.type === MediaType.SITE
+              ? 'Site'
+              : 'Series';
       let event: string | undefined;
       let notifyAdmin = true;
       let notifySystem = true;
@@ -875,6 +1059,44 @@ export class MediaRequest {
                 .join(', '),
             },
           ],
+        });
+      } else if (isWhisparrType(entity.type) && media.tpdbId) {
+        const tpdb = new Tpdb();
+        const details =
+          entity.type === MediaType.SCENE
+            ? mapSceneDetails(await tpdb.getScene({ sceneId: media.tpdbId }))
+            : mapSiteDetails(
+                await tpdb.getSite({ siteId: Number(media.tpdbId) })
+              );
+        const [subject, overview] =
+          'title' in details
+            ? [details.title, details.overview]
+            : [details.name, details.description];
+        notificationManager.sendNotification(type, {
+          media,
+          request: entity,
+          notifyAdmin,
+          notifySystem,
+          notifyUser: notifyAdmin ? undefined : entity.requestedBy,
+          event,
+          subject,
+          message: truncate(overview ?? '', {
+            length: 500,
+            separator: /\s/,
+            omission: '…',
+          }),
+          image: details.posterPath,
+          extra:
+            entity.type === MediaType.SITE
+              ? [
+                  {
+                    name: 'Requested Years',
+                    value: entity.seasons
+                      .map((season) => season.seasonNumber)
+                      .join(', '),
+                  },
+                ]
+              : undefined,
         });
       }
     } catch (e) {

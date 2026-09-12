@@ -98,7 +98,8 @@ export interface WhisparrSite {
 
 export interface AddSiteOptions {
   tvdbid: number;
-  title: string;
+  /** Defaults to the title Whisparr's own lookup returns. */
+  title?: string;
   profileId: number;
   seasons: number[];
   seasonFolder: boolean;
@@ -168,12 +169,15 @@ class WhisparrAPI extends ServarrBase<{
     }
   }
 
+  // Whisparr v2 lookup prefix is `tpdb:<site id>` (live-verified 2026-09-12;
+  // Sonarr's `tvdb:` silently returns []). A site not yet in the library comes
+  // back without an id but with its calendar-year seasons.
   public async getSiteByTpdbId(id: number): Promise<WhisparrSite> {
     let response: AxiosResponse<WhisparrSite[]>;
     try {
       response = await this.axios.get<WhisparrSite[]>('/series/lookup', {
         params: {
-          term: `tvdb:${id}`,
+          term: `tpdb:${id}`,
         },
       });
     } catch (e) {
@@ -266,7 +270,7 @@ class WhisparrAPI extends ServarrBase<{
         '/series',
         {
           tvdbId: options.tvdbid,
-          title: options.title,
+          title: options.title ?? site.title,
           qualityProfileId: options.profileId,
           seasons: this.buildSeasonList(
             options.seasons,
@@ -335,6 +339,25 @@ class WhisparrAPI extends ServarrBase<{
           label: 'Whisparr API',
           errorMessage: e.message,
           seriesId,
+        }
+      );
+    }
+  }
+
+  public async searchEpisodes(episodeIds: number[]): Promise<void> {
+    logger.info('Executing episode search command.', {
+      label: 'Whisparr API',
+      episodeIds,
+    });
+    try {
+      await this.runCommand('EpisodeSearch', { episodeIds });
+    } catch (e) {
+      logger.error(
+        'Something went wrong while executing Whisparr episode search.',
+        {
+          label: 'Whisparr API',
+          errorMessage: e.message,
+          episodeIds,
         }
       );
     }
@@ -439,7 +462,7 @@ class WhisparrAPI extends ServarrBase<{
   }) => {
     if (tvdbId) {
       this.removeCache('/series/lookup', {
-        term: `tvdb:${tvdbId}`,
+        term: `tpdb:${tvdbId}`,
       });
     }
     if (externalId) {

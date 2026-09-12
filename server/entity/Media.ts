@@ -409,6 +409,21 @@ class Media {
       }
     }
 
+    if (this.externalServiceId != null) {
+      if (this.mediaType === MediaType.SITE) {
+        this.downloadStatus = downloadTracker.getWhisparrProgress({
+          siteExternalId: this.externalServiceId,
+        });
+      }
+      // Scene rows keep the Whisparr episode id; its site id is not stored,
+      // so match on the episode alone.
+      if (this.mediaType === MediaType.SCENE) {
+        this.downloadStatus = downloadTracker.getWhisparrProgress({
+          episodeId: this.externalServiceId,
+        });
+      }
+    }
+
     if (this.mediaType === MediaType.TV) {
       if (
         this.externalServiceId !== undefined &&

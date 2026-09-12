@@ -61,7 +61,7 @@ describe('WhisparrAPI removeSite', () => {
 describe('WhisparrAPI getSiteByTpdbId', () => {
   afterEach(() => mock.restoreAll());
 
-  it('queries /series/lookup with a tvdb: prefixed term', async () => {
+  it('queries /series/lookup with a tpdb: prefixed term', async () => {
     const whisparr = buildWhisparr();
     const get = mock.method(getAxios(whisparr), 'get', async () => ({
       data: [{ id: 9, title: 'Test Site' }],
@@ -71,7 +71,7 @@ describe('WhisparrAPI getSiteByTpdbId', () => {
 
     assert.strictEqual(get.mock.calls[0].arguments[0], '/series/lookup');
     assert.deepStrictEqual(get.mock.calls[0].arguments[1], {
-      params: { term: 'tvdb:4242' },
+      params: { term: 'tpdb:4242' },
     });
   });
 

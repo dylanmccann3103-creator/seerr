@@ -1,7 +1,8 @@
 import {
   MediaRequestStatus,
   MediaStatus,
-  MediaType,
+  isSeasonal,
+  isSingleItem,
 } from '@server/constants/media';
 import Media from '@server/entity/Media';
 import { MediaRequest } from '@server/entity/MediaRequest';
@@ -73,10 +74,10 @@ export class MediaSubscriber implements EntitySubscriberInterface<Media> {
             MediaStatus.AVAILABLE ||
             event[request.is4k ? 'status4k' : 'status'] ===
               MediaStatus.DELETED) &&
-          event.mediaType === MediaType.MOVIE
+          isSingleItem(event.mediaType)
         ) {
           shouldComplete = true;
-        } else if (event.mediaType === 'tv') {
+        } else if (isSeasonal(event.mediaType)) {
           const allSeasonResults: boolean[] = [];
 
           // Sequential on purpose as these saves share the transaction's connection
@@ -226,8 +227,7 @@ export class MediaSubscriber implements EntitySubscriberInterface<Media> {
     try {
       if (
         (event.entity.status !== event.databaseEntity?.status ||
-          (event.entity.mediaType === MediaType.TV &&
-            seasonStatusCheck(false))) &&
+          (isSeasonal(event.entity.mediaType) && seasonStatusCheck(false))) &&
         validStatuses.includes(event.entity.status)
       ) {
         await withNestedTransaction(event.manager, async (manager) => {
@@ -254,8 +254,7 @@ export class MediaSubscriber implements EntitySubscriberInterface<Media> {
     try {
       if (
         (event.entity.status4k !== event.databaseEntity?.status4k ||
-          (event.entity.mediaType === MediaType.TV &&
-            seasonStatusCheck(true))) &&
+          (isSeasonal(event.entity.mediaType) && seasonStatusCheck(true))) &&
         validStatuses.includes(event.entity.status4k)
       ) {
         await withNestedTransaction(event.manager, async (manager) => {

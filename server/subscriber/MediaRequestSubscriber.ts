@@ -5,12 +5,18 @@ import type {
   SonarrSeries,
 } from '@server/api/servarr/sonarr';
 import SonarrAPI from '@server/api/servarr/sonarr';
+import type { EpisodeResult } from '@server/api/servarr/whisparr';
+import WhisparrAPI from '@server/api/servarr/whisparr';
 import TheMovieDb from '@server/api/themoviedb';
 import { ANIME_KEYWORD_ID } from '@server/api/themoviedb/constants';
+import Tpdb from '@server/api/tpdb';
 import {
   MediaRequestStatus,
   MediaStatus,
   MediaType,
+  isSeasonal,
+  isSingleItem,
+  isWhisparrType,
 } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import Media from '@server/entity/Media';
@@ -41,8 +47,213 @@ const sanitizeDisplayName = (displayName: string): string => {
     .replace(/^-|-$/g, '');
 };
 
+// ponytail: Whisparr fills a new site's episodes asynchronously after POST
+// /series, so a scene dispatch polls briefly for its episode. Exported so
+// tests can shrink the delay.
+export const whisparrEpisodePoll = { attempts: 5, delayMs: 2000 };
+
 @EventSubscriber()
 export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRequest> {
+  // PLAN.md D2t/D5: awaited dispatch, exactly-once via an atomic conditional
+  // UPDATE on sentToServiceAt (no in-process lock — a subscriber holds the
+  // save's connection, see utils/requestLock.ts). Failure -> FAILED +
+  // failureReason and the guard is cleared so /retry can resend. Nothing is
+  // ever deleted here.
+  public async sendToWhisparr(
+    entity: MediaRequest,
+    manager: EntityManager
+  ): Promise<void> {
+    if (
+      entity.status !== MediaRequestStatus.APPROVED ||
+      !isWhisparrType(entity.type)
+    ) {
+      return;
+    }
+
+    const requestRepository = manager.getRepository(MediaRequest);
+    const mediaRepository = manager.getRepository(Media);
+    const settings = getSettings().whisparr;
+    const log = {
+      label: 'Media Request',
+      requestId: entity.id,
+      mediaId: entity.media.id,
+    };
+
+    if (!settings.enabled || !settings.apiKey || !settings.hostname) {
+      logger.warn(
+        'Whisparr is not configured, skipping request processing',
+        log
+      );
+      return;
+    }
+
+    // Plain query-builder updates: listeners off so these bookkeeping writes
+    // don't re-enter this subscriber with a partial entity.
+    const claimed = await requestRepository
+      .createQueryBuilder()
+      .update(MediaRequest)
+      .set({ sentToServiceAt: new Date() })
+      .where('id = :id AND sentToServiceAt IS NULL', { id: entity.id })
+      .callListeners(false)
+      .execute();
+    const silentUpdate = async (
+      target: typeof Media | typeof MediaRequest,
+      id: number,
+      values: Record<string, unknown>
+    ) =>
+      manager
+        .createQueryBuilder()
+        .update(target)
+        .set(values)
+        .where('id = :id', { id })
+        .callListeners(false)
+        .execute();
+
+    if (!claimed.affected) {
+      logger.debug('Request already dispatched to Whisparr, skipping', log);
+      return;
+    }
+    entity.sentToServiceAt = new Date();
+
+    const media = await mediaRepository.findOne({
+      where: { id: entity.media.id },
+    });
+
+    try {
+      if (!media) {
+        throw new Error('Media data not found');
+      }
+
+      if (media.status === MediaStatus.AVAILABLE) {
+        logger.warn('Media already exists, marking request as COMPLETED', log);
+        entity.status = MediaRequestStatus.COMPLETED;
+        entity.seasons.forEach((season) => {
+          season.status = MediaRequestStatus.COMPLETED;
+        });
+        await requestRepository.save(entity);
+        return;
+      }
+
+      if (!media.tpdbId) {
+        throw new Error('Media has no TPDB id');
+      }
+
+      const whisparr = new WhisparrAPI({
+        apiKey: settings.apiKey,
+        url: WhisparrAPI.buildUrl(settings, '/api/v3'),
+      });
+
+      const rootFolderPath = entity.rootFolder || settings.activeDirectory;
+      const profileId = entity.profileId || settings.activeProfileId;
+      const tags = entity.tags ? [...entity.tags] : [];
+
+      if (settings.tagRequests) {
+        const label = `${entity.requestedBy.id}-${sanitizeDisplayName(
+          entity.requestedBy.displayName
+        )}`;
+        const existingTags = await whisparr.getTags();
+        const userTag =
+          existingTags.find(
+            (t) =>
+              t.label.startsWith(`${entity.requestedBy.id}-`) ||
+              t.label.startsWith(`${entity.requestedBy.id} - `)
+          ) ?? (await whisparr.createTag({ label }));
+        if (userTag.id && !tags.includes(userTag.id)) {
+          tags.push(userTag.id);
+        }
+      }
+
+      const common = {
+        profileId,
+        rootFolderPath,
+        tags,
+        seasonFolder: true,
+        monitored: true,
+        monitorNewItems: settings.monitorNewItems,
+      };
+
+      if (entity.type === MediaType.SITE) {
+        const site = await whisparr.addSite({
+          ...common,
+          tvdbid: Number(media.tpdbId),
+          seasons: entity.seasons.map((season) => season.seasonNumber),
+          searchNow: settings.searchOnRequest,
+        });
+        await silentUpdate(Media, media.id, {
+          externalServiceId: site.id,
+          externalServiceSlug: site.titleSlug,
+        });
+      } else {
+        const scene = await new Tpdb().getScene({ sceneId: media.tpdbId });
+        const site = await whisparr.addSite({
+          ...common,
+          tvdbid: scene.site_id,
+          seasons: [],
+          searchNow: false,
+        });
+        if (!site.id) {
+          throw new Error('Whisparr returned a site without an id');
+        }
+        const episode = await this.findWhisparrEpisode(
+          whisparr,
+          site.id,
+          Number(media.tpdbId)
+        );
+        await whisparr.monitorEpisodes([episode.id]);
+        if (settings.searchOnRequest) {
+          await whisparr.searchEpisodes([episode.id]);
+        }
+        await silentUpdate(Media, media.id, {
+          externalServiceId: episode.id,
+          externalServiceSlug: site.titleSlug,
+        });
+      }
+
+      logger.info('Sent request to Whisparr', log);
+    } catch (e) {
+      const failureReason = truncate(
+        e instanceof Error ? e.message : String(e),
+        { length: 255 }
+      );
+      entity.status = MediaRequestStatus.FAILED;
+      entity.failureReason = failureReason;
+      entity.sentToServiceAt = null;
+      await silentUpdate(MediaRequest, entity.id, {
+        status: MediaRequestStatus.FAILED,
+        failureReason,
+        sentToServiceAt: null,
+      });
+      logger.warn(
+        'Failed to send request to Whisparr, marking status as FAILED',
+        { ...log, errorMessage: failureReason }
+      );
+      if (media) {
+        MediaRequest.sendNotification(entity, media, Notification.MEDIA_FAILED);
+      }
+    }
+  }
+
+  private async findWhisparrEpisode(
+    whisparr: WhisparrAPI,
+    siteId: number,
+    sceneId: number
+  ): Promise<EpisodeResult> {
+    for (let attempt = 0; attempt < whisparrEpisodePoll.attempts; attempt++) {
+      const episode = (await whisparr.getEpisodes(siteId)).find(
+        (ep) => ep.tvdbId === sceneId
+      );
+      if (episode) {
+        return episode;
+      }
+      await new Promise((resolve) =>
+        setTimeout(resolve, whisparrEpisodePoll.delayMs)
+      );
+    }
+    throw new Error(
+      `Scene ${sceneId} not found in Whisparr site ${siteId} (episodes not indexed yet?)`
+    );
+  }
+
   private async notifyAvailableMovie(
     entity: MediaRequest,
     event?: UpdateEvent<MediaRequest>
@@ -862,7 +1073,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
     }
 
     if (
-      media.mediaType === MediaType.MOVIE &&
+      isSingleItem(media.mediaType) &&
       entity.status === MediaRequestStatus.DECLINED &&
       media[statusKey] !== MediaStatus.DELETED
     ) {
@@ -877,7 +1088,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
      * other requests have yet to be approved)
      */
     if (
-      media.mediaType === MediaType.TV &&
+      isSeasonal(media.mediaType) &&
       entity.status === MediaRequestStatus.DECLINED &&
       media[statusKey] === MediaStatus.PENDING
     ) {
@@ -904,7 +1115,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
 
     // Reset season statuses when a TV request is declined
     if (
-      media.mediaType === MediaType.TV &&
+      isSeasonal(media.mediaType) &&
       entity.status === MediaRequestStatus.DECLINED
     ) {
       const seasonRepository = manager.getRepository(Season);
@@ -948,7 +1159,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
 
     // Approve child seasons if parent is approved
     if (
-      media.mediaType === MediaType.TV &&
+      isSeasonal(media.mediaType) &&
       entity.status === MediaRequestStatus.APPROVED
     ) {
       for (const season of entity.seasons) {
@@ -1018,7 +1229,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
     }
 
     // Reset stale seasons or re-requests fail ("No seasons available to request")
-    if (fullMedia.mediaType === MediaType.TV) {
+    if (isSeasonal(fullMedia.mediaType)) {
       const statusKey = entity.is4k ? 'status4k' : 'status';
       const removedSeasonNumbers = new Set(
         entity.seasons.map((s) => s.seasonNumber)
@@ -1060,6 +1271,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
     try {
       await this.sendToRadarr(event.entity as MediaRequest, event.manager);
       await this.sendToSonarr(event.entity as MediaRequest, event.manager);
+      await this.sendToWhisparr(event.entity as MediaRequest, event.manager);
     } catch (e) {
       logger.error('Error while sending to *arr in afterUpdate subscriber', {
         label: 'Media Request',
@@ -1074,10 +1286,10 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
       });
 
       if (event.entity.status === MediaRequestStatus.COMPLETED) {
-        if (event.entity.media.mediaType === MediaType.MOVIE) {
+        if (isSingleItem(event.entity.media.mediaType)) {
           await this.notifyAvailableMovie(event.entity as MediaRequest, event);
         }
-        if (event.entity.media.mediaType === MediaType.TV) {
+        if (isSeasonal(event.entity.media.mediaType)) {
           await this.notifyAvailableSeries(event.entity as MediaRequest, event);
         }
       }
@@ -1101,6 +1313,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
     try {
       await this.sendToRadarr(event.entity as MediaRequest, event.manager);
       await this.sendToSonarr(event.entity as MediaRequest, event.manager);
+      await this.sendToWhisparr(event.entity as MediaRequest, event.manager);
     } catch (e) {
       logger.error('Error while sending to *arr in afterInsert subscriber', {
         label: 'Media Request',

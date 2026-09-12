@@ -173,6 +173,10 @@ requestRoutes.get<Record<string, unknown>, RequestResultsResponse>(
             type: MediaType.TV,
           });
           break;
+        case 'scene':
+        case 'site':
+          query = query.andWhere('request.type = :type', { type: mediaType });
+          break;
       }
 
       const [requests, requestCount] = await query

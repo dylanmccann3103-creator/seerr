@@ -43,6 +43,36 @@
 - Whisparr test instance holds 1 site (Brazzers, tvdbId 92, 277 episodes,
   0 files) — pre-existing, not ours.
 
+## Done (phase D)
+
+- **D1t** — `MediaRequest.createWhisparrRequest`: scene (movie-shaped, one
+  item) and site (year seasons) branches, TPDB validation via
+  `getScene`/`getSite`, `Permission.REQUEST` + `AUTO_APPROVE`/`MANAGE_REQUESTS`
+  auto-approve, quotas reuse movie (scene) / tv (site years) columns
+  (ponytail-commented). `seasons: 'all'` for a site resolves years from
+  Whisparr's lookup. Override rules skipped for scene/site (TMDB-keyed).
+- **D2t** — `MediaRequestSubscriber.sendToWhisparr`: awaited, exactly-once
+  via an atomic conditional UPDATE on `sentToServiceAt` (no in-process lock:
+  subscribers hold the save connection, see `utils/requestLock.ts`).
+  Failure → FAILED + `failureReason`, guard cleared so `/retry` resends.
+  Nothing deleted (D5). Scene dispatch = addSite (no seasons) → poll
+  `/episode` for the TPDB `_id` → `/episode/monitor` (+ `EpisodeSearch`
+  when `searchOnRequest`). Bookkeeping writes use `callListeners(false)`.
+- **D3t** — 7 tests in `MediaRequestSubscriber.whisparr.test.ts`: scene
+  dispatch, site 'all' years, double+concurrent approve → 1 send,
+  FAILED+reason+retry, missing episode → FAILED (rows kept), COMPLETED
+  propagation for scene and site, duplicate/no-years rejections.
+- **D4t** — COMPLETED propagation generalized (`isSeasonal`/`isSingleItem`
+  helpers in `constants/media.ts`) in MediaSubscriber + updateParentStatus
+  + remove handler; download tracker polls the Whisparr queue
+  (`Media.downloadStatus` for site by series id, scene by episode id);
+  Whisparr scan now sets vanished AVAILABLE/PARTIAL media to DELETED.
+- **Live-verified** against the real Whisparr: scene request for 5241456 →
+  APPROVED, media PROCESSING, externalServiceId = episode 1, 287 ms.
+  Found + fixed: Whisparr v2 lookup prefix is `tpdb:<id>` (Sonarr's `tvdb:`
+  returns `[]`); a non-library site's lookup does include year seasons.
+- Notifications for scene/site go through TPDB (`sendNotification` branch).
+
 ## Done
 
 - **Plan** — PLAN.md written, D1–D5 approved (checkpoint 1 passed 2026-09-11).
@@ -95,7 +125,8 @@
 
 ## Next
 
-- Phase D (request flow: D1t TPDB validation, D2t sendToWhisparr, D3t, D4t)
+- Phase E (frontend: scene/site discover, details, request modal, request list
+  with failureReason)
 - Live connection tests of C3/C6 settings pages against real instances
 - Jellyfin pathMappings editor in settings UI (C6 follow-up)
 
@@ -113,4 +144,7 @@
 
 ## Test data added to Whisparr
 
-- None. (No live Whisparr access yet; nothing to clean up.)
+- 2026-09-12 phase D smoke: one scene request (Brazzers episode id 1, TPDB
+  5241456) did a PUT /series on the pre-existing Brazzers site (monitored
+  stays true, tags unchanged) and a no-op monitor of episode 1 (already
+  monitored). No search, no downloads, no new sites. Nothing to clean up.

@@ -168,6 +168,8 @@ describe('Whisparr Scanner', () => {
         requestedBy: user,
         type: MediaType.SITE,
         status: MediaRequestStatus.APPROVED,
+        // already dispatched, so the subscriber's Whisparr send is skipped
+        sentToServiceAt: new Date(),
         is4k: false,
         seasons: [],
       })

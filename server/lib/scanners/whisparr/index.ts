@@ -309,15 +309,19 @@ class WhisparrScanner
   private async cleanupOrphans(): Promise<void> {
     const mediaRepository = getRepository(Media);
 
-    const processing = await mediaRepository.find({
+    const tracked = await mediaRepository.find({
       where: {
         mediaType: In([MediaType.SITE, MediaType.SCENE]),
-        status: MediaStatus.PROCESSING,
+        status: In([
+          MediaStatus.PROCESSING,
+          MediaStatus.PARTIALLY_AVAILABLE,
+          MediaStatus.AVAILABLE,
+        ]),
       },
       relations: { seasons: true, requests: true },
     });
 
-    for (const media of processing) {
+    for (const media of tracked) {
       const seen =
         media.mediaType === MediaType.SITE
           ? this.scannedSiteIds
@@ -326,16 +330,24 @@ class WhisparrScanner
         continue;
       }
 
-      media.status = MediaStatus.UNKNOWN;
+      // Gone from Whisparr: still-processing -> UNKNOWN (and its approved
+      // requests declined so it can be re-requested); was available ->
+      // DELETED, which completes its requests (MediaSubscriber) like the
+      // upstream availability sync does.
+      const wasProcessing = media.status === MediaStatus.PROCESSING;
+      const next = wasProcessing ? MediaStatus.UNKNOWN : MediaStatus.DELETED;
+      media.status = next;
       for (const season of media.seasons) {
-        if (season.status === MediaStatus.PROCESSING) {
-          season.status = MediaStatus.UNKNOWN;
+        if (season.status !== MediaStatus.UNKNOWN) {
+          season.status = next;
         }
       }
       await mediaRepository.save(media);
-      await this.declineOrphanedRequests(media, false);
+      if (wasProcessing) {
+        await this.declineOrphanedRequests(media, false);
+      }
       this.log(
-        `${media.mediaType} ${media.tpdbId} not found in Whisparr. Status reset to UNKNOWN.`,
+        `${media.mediaType} ${media.tpdbId} not found in Whisparr. Status set to ${next}.`,
         'info'
       );
     }
