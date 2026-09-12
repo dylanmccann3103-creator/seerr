@@ -67,6 +67,10 @@ An item is AVAILABLE if **any** enabled library has it (DoD 6).
   support multiple endpoints; if this Stash instance scrapes with the TPDB scraper, its
   scenes carry TPDB ids that match directly. Checked against the live Stash in C2; if
   absent, tier 1 alone decides.
+  *C live check (2026-09-12): Stash v0.31.1 has ThePornDB configured as a stash-box
+  (`endpoint: https://theporndb.net/graphql`), but the library holds 0 scenes and no
+  scene scrapers. Tier 2 stays viable (stash_id = TPDB uuid `id` under that endpoint)
+  but is unverifiable on data until the library is populated; tier 1 leads.*
 - **Jellyfin — path match only:** same normalized-path comparison against Jellyfin item
   `Path`. **Limits (documented per assignment):** only works for files Whisparr placed or
   that live under the same roots; scenes that entered Jellyfin outside Whisparr and with

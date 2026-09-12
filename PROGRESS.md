@@ -11,11 +11,18 @@
   + OpenAPI entries; searchOnRequest default OFF (ponytail-commented).
 - **C6 done, reviewed & accepted** (`a4686a2e`) — SettingsWhisparr on the
   services page, Stash tab + path-mapping editor, 57 i18n keys.
-- **PHASE C HARD-BLOCKED on .env**: WHISPARR_API_KEY, STASH_URL,
-  STASH_API_KEY still missing (only TPDB_API_KEY present). Blocked work:
-  C4/C5 scanners, episode↔TPDB-scene-id verification (gates phase D scene
-  dispatch), live connection tests of everything built so far. Also open:
-  does Stash scrape with the TPDB scraper? (D3 tier-2 id matching.)
+- **Blocker lifted 2026-09-12** — .env complete (WHISPARR_API_KEY,
+  STASH_URL=http://192.168.6.2:30198, STASH_API_KEY). Live: Whisparr
+  2.2.0.231 OK, Stash v0.31.1 OK.
+- **Episode↔TPDB id VERIFIED**: Whisparr `/episode` carries `tvdbId` =
+  TPDB scene numeric `_id` (5241456 ↔ "Brazzers Live 1: The Beginning",
+  cross-checked on `/scenes/5241456`). Episodes use `releaseDate`, not
+  airDate; `actors[].tpdbId` present. Phase D scene dispatch unblocked.
+- **Stash tier-2**: ThePornDB is configured as stash-box endpoint, but
+  library is empty (0 scenes, only builtin_autotag scraper). Tier 1 path
+  match leads; tier 2 verifiable once scenes exist.
+- **Next: C4/C5 scanners.** Whisparr test instance holds 1 site
+  (Brazzers, tvdbId 92, 277 episodes, 0 files) — pre-existing, not ours.
 
 ## Done
 
@@ -69,8 +76,8 @@
 
 ## Next
 
-- A3 (Scene/Site/Performer models + mappers) — after A2 + reference report
-- Phase B (data model: scene/site MediaType, drop 4K, drop Postgres, migration)
+- C4 Jellyfin scanner adapt, C5 Whisparr + Stash scanners (unblocked)
+- Live connection tests of C3/C6 settings pages against real instances
 
 ## Open issues
 
@@ -81,9 +88,8 @@
   popularity locally from request counts later. Proceeding with default order
   unless directed otherwise.
 
-- Per-episode TPDB scene-id location in Whisparr v2 unverified — needs live
-  `/episode` access, deferred to phase C (agreed: no live Whisparr until C).
-- Stash instance details (URL/key, whether it scrapes TPDB) — needed from C2.
+- ~~Per-episode TPDB scene-id location~~ resolved 2026-09-12 (see phase C).
+- ~~Stash instance details~~ resolved; TPDB scraping unverifiable on empty library.
 
 ## Test data added to Whisparr
 

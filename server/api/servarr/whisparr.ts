@@ -27,7 +27,10 @@ interface EpisodeResult {
   monitored: boolean;
   absoluteEpisodeNumber: number;
   unverifiedSceneNumbering: boolean;
-  // TODO(phase D): verify episode<->TPDB scene id field via live /episode
+  /** TPDB scene numeric `_id` (NOT the uuid `id`) — live-verified 2026-09-12 against /episode */
+  tvdbId: number;
+  /** Also live: `releaseDate` (YYYY-MM-DD) instead of airDate, and `actors[].tpdbId`. */
+  releaseDate?: string;
   id: number;
 }
 
