@@ -67,6 +67,15 @@ const RequestButton = ({
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showRequest4kModal, setShowRequest4kModal] = useState(false);
   const [editRequest, setEditRequest] = useState(false);
+  // scene ~ movie (one item), site ~ tv (year seasons); neither has 4K.
+  const isSingle = mediaType === 'movie' || mediaType === 'scene';
+  const isSeasonal = mediaType === 'tv' || mediaType === 'site';
+  const requestPermissions =
+    mediaType === 'movie'
+      ? [Permission.REQUEST, Permission.REQUEST_MOVIE]
+      : mediaType === 'tv'
+        ? [Permission.REQUEST, Permission.REQUEST_TV]
+        : [Permission.REQUEST];
 
   // All pending requests
   const activeRequests = media?.requests.filter(
@@ -146,7 +155,7 @@ const RequestButton = ({
     if (
       activeRequest &&
       hasPermission(Permission.MANAGE_REQUESTS) &&
-      mediaType === 'movie'
+      isSingle
     ) {
       buttons.push(
         {
@@ -170,7 +179,7 @@ const RequestButton = ({
       activeRequests &&
       activeRequests.length > 0 &&
       hasPermission(Permission.MANAGE_REQUESTS) &&
-      mediaType === 'tv'
+      isSeasonal
     ) {
       buttons.push(
         {
@@ -272,15 +281,7 @@ const RequestButton = ({
     (!media ||
       media.status === MediaStatus.UNKNOWN ||
       (media.status === MediaStatus.DELETED && !activeRequest)) &&
-    hasPermission(
-      [
-        Permission.REQUEST,
-        mediaType === 'movie'
-          ? Permission.REQUEST_MOVIE
-          : Permission.REQUEST_TV,
-      ],
-      { type: 'or' }
-    )
+    hasPermission(requestPermissions, { type: 'or' })
   ) {
     buttons.push({
       id: 'request',
@@ -292,11 +293,9 @@ const RequestButton = ({
       svg: <ArrowDownTrayIcon />,
     });
   } else if (
-    mediaType === 'tv' &&
+    isSeasonal &&
     (!activeRequest || activeRequest.requestedBy.id !== user?.id) &&
-    hasPermission([Permission.REQUEST, Permission.REQUEST_TV], {
-      type: 'or',
-    }) &&
+    hasPermission(requestPermissions, { type: 'or' }) &&
     media &&
     media.status !== MediaStatus.BLOCKLISTED &&
     !isShowComplete

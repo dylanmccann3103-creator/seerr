@@ -4,11 +4,9 @@ import PageTitle from '@app/components/Common/PageTitle';
 import useDiscover from '@app/hooks/useDiscover';
 import ErrorPage from '@app/pages/_error';
 import defineMessages from '@app/utils/defineMessages';
-import type {
-  MovieResult,
-  PersonResult,
-  TvResult,
-} from '@server/models/Search';
+import type { PerformerResult } from '@server/models/Performer';
+import type { SceneResult } from '@server/models/Scene';
+import type { SiteResult } from '@server/models/Site';
 import { useRouter } from 'next/router';
 import { useIntl } from 'react-intl';
 
@@ -29,7 +27,7 @@ const Search = () => {
     titles,
     fetchMore,
     error,
-  } = useDiscover<MovieResult | TvResult | PersonResult>(
+  } = useDiscover<SceneResult | SiteResult | PerformerResult>(
     `/api/v1/search`,
     {
       query: router.query.query,

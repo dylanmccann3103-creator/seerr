@@ -212,6 +212,36 @@ const Discover = () => {
         let sliderComponent: React.ReactNode;
 
         switch (slider.type) {
+          case DiscoverSliderType.RECENT_SCENES:
+            sliderComponent = (
+              <MediaSlider
+                sliderKey="recent-scenes"
+                title={intl.formatMessage(sliderTitles.recentscenes)}
+                url="/api/v1/discover/scenes"
+                linkUrl="/discover/scenes"
+              />
+            );
+            break;
+          case DiscoverSliderType.SITES:
+            sliderComponent = (
+              <MediaSlider
+                sliderKey="sites"
+                title={intl.formatMessage(sliderTitles.sites)}
+                url="/api/v1/discover/sites"
+                linkUrl="/discover/sites"
+              />
+            );
+            break;
+          case DiscoverSliderType.PERFORMERS:
+            sliderComponent = (
+              <MediaSlider
+                sliderKey="performers"
+                title={intl.formatMessage(sliderTitles.performers)}
+                url="/api/v1/discover/performers"
+                linkUrl="/discover/performers"
+              />
+            );
+            break;
           case DiscoverSliderType.RECENTLY_ADDED:
             sliderComponent = <RecentlyAddedSlider />;
             break;

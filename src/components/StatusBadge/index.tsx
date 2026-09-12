@@ -29,7 +29,7 @@ interface StatusBadgeProps {
   plexUrl?: string;
   serviceUrl?: string;
   tmdbId?: number;
-  mediaType?: 'movie' | 'tv';
+  mediaType?: 'movie' | 'tv' | 'scene' | 'site';
   title?: string | string[];
   statusLabelOverride?: string;
 }
@@ -53,6 +53,22 @@ const StatusBadge = ({
   let mediaLink: string | undefined;
   let mediaLinkDescription: string | undefined;
 
+  const isTpdb = mediaType === 'scene' || mediaType === 'site';
+  const isSeasonal = mediaType === 'tv' || mediaType === 'site';
+  const typeLabel =
+    mediaType === 'movie'
+      ? globalMessages.movie
+      : mediaType === 'scene'
+        ? globalMessages.scene
+        : mediaType === 'site'
+          ? globalMessages.site
+          : globalMessages.tvshow;
+  const arrName = isTpdb
+    ? 'Whisparr'
+    : mediaType === 'movie'
+      ? 'Radarr'
+      : 'Sonarr';
+
   const calculateDownloadProgress = (media: DownloadingItem) => {
     return Math.round(((media?.size - media?.sizeLeft) / media?.size) * 100);
   };
@@ -61,19 +77,21 @@ const StatusBadge = ({
     mediaType &&
     plexUrl &&
     hasPermission(
-      is4k
-        ? [
-            Permission.REQUEST_4K,
-            mediaType === 'movie'
-              ? Permission.REQUEST_4K_MOVIE
-              : Permission.REQUEST_4K_TV,
-          ]
-        : [
-            Permission.REQUEST,
-            mediaType === 'movie'
-              ? Permission.REQUEST_MOVIE
-              : Permission.REQUEST_TV,
-          ],
+      isTpdb
+        ? [Permission.REQUEST]
+        : is4k
+          ? [
+              Permission.REQUEST_4K,
+              mediaType === 'movie'
+                ? Permission.REQUEST_4K_MOVIE
+                : Permission.REQUEST_4K_TV,
+            ]
+          : [
+              Permission.REQUEST,
+              mediaType === 'movie'
+                ? Permission.REQUEST_MOVIE
+                : Permission.REQUEST_TV,
+            ],
       {
         type: 'or',
       }
@@ -96,20 +114,18 @@ const StatusBadge = ({
     if (mediaType && tmdbId) {
       mediaLink = `/${mediaType}/${tmdbId}?manage=1`;
       mediaLinkDescription = intl.formatMessage(messages.managemedia, {
-        mediaType: intl.formatMessage(
-          mediaType === 'movie' ? globalMessages.movie : globalMessages.tvshow
-        ),
+        mediaType: intl.formatMessage(typeLabel),
       });
     } else if (hasPermission(Permission.ADMIN) && serviceUrl) {
       mediaLink = serviceUrl;
       mediaLinkDescription = intl.formatMessage(messages.openinarr, {
-        arr: mediaType === 'movie' ? 'Radarr' : 'Sonarr',
+        arr: arrName,
       });
     }
   }
 
   const tooltipContent =
-    mediaType === 'tv' &&
+    isSeasonal &&
     downloadItem.length > 1 &&
     downloadItem.every(
       (item) =>
@@ -191,7 +207,7 @@ const StatusBadge = ({
               </span>
               {inProgress && (
                 <>
-                  {mediaType === 'tv' &&
+                  {isSeasonal &&
                     downloadItem[0].episode &&
                     (downloadItem.length > 1 &&
                     downloadItem.every(
@@ -256,7 +272,7 @@ const StatusBadge = ({
               </span>
               {inProgress && (
                 <>
-                  {mediaType === 'tv' &&
+                  {isSeasonal &&
                     downloadItem[0].episode &&
                     (downloadItem.length > 1 &&
                     downloadItem.every(
@@ -321,7 +337,7 @@ const StatusBadge = ({
               </span>
               {inProgress && (
                 <>
-                  {mediaType === 'tv' &&
+                  {isSeasonal &&
                     downloadItem[0].episode &&
                     (downloadItem.length > 1 &&
                     downloadItem.every(
@@ -410,7 +426,7 @@ const StatusBadge = ({
               </span>
               {inProgress && (
                 <>
-                  {mediaType === 'tv' &&
+                  {isSeasonal &&
                     downloadItem[0].episode &&
                     (downloadItem.length > 1 &&
                     downloadItem.every(

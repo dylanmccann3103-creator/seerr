@@ -35,6 +35,9 @@ interface DiscoverResult<T, S> {
   mutate?: () => void;
 }
 
+const hasMediaInfo = (i: BaseMedia): boolean =>
+  ['movie', 'tv', 'scene', 'site'].includes(i.mediaType);
+
 const extraEncodes: [RegExp, string][] = [
   [/\(/g, '%28'],
   [/\)/g, '%29'],
@@ -125,7 +128,7 @@ const useDiscover = <
   if (settings.currentSettings.hideAvailable && hideAvailable) {
     titles = titles.filter(
       (i) =>
-        !(i.mediaType === 'movie' || i.mediaType === 'tv') ||
+        !hasMediaInfo(i) ||
         (i.mediaInfo?.status !== MediaStatus.AVAILABLE &&
           i.mediaInfo?.status !== MediaStatus.PARTIALLY_AVAILABLE)
     );
@@ -137,15 +140,13 @@ const useDiscover = <
     hasPermission(Permission.MANAGE_BLOCKLIST)
   ) {
     titles = titles.filter(
-      (i) =>
-        !(i.mediaType === 'movie' || i.mediaType === 'tv') ||
-        i.mediaInfo?.status !== MediaStatus.BLOCKLISTED
+      (i) => !hasMediaInfo(i) || i.mediaInfo?.status !== MediaStatus.BLOCKLISTED
     );
   }
 
   if (settings.currentSettings.hideRequested && hideRequested) {
     titles = titles.filter((i) => {
-      if (i.mediaType !== 'movie' && i.mediaType !== 'tv') {
+      if (!hasMediaInfo(i)) {
         return true;
       }
 

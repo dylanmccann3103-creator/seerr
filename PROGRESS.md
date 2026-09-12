@@ -43,6 +43,39 @@
 - Whisparr test instance holds 1 site (Brazzers, tvdbId 92, 277 episodes,
   0 files) — pre-existing, not ours.
 
+## Done (phase E)
+
+- **Backend for E1–E3 done** (`acbd56cf`): `/discover/{scenes,sites,performers}`,
+  TPDB search (sites + performers ride along on page 1, scenes paginate; no
+  prefix providers), `/scene/:id`, `/site/:id` (+ Whisparr year seasons,
+  `/site/:id/scenes`), `/performer/:id` (+ `/scenes` via `performer_id`),
+  `Media.getRelatedTpdbMedia`, OpenAPI entries. Live-verified through the
+  router with the request validator. Scene performer refs now use the
+  parent performer id (site-performer ids don't resolve on `/performers`).
+- **Shared cards done** (`73f9c924`): TitleCard/MediaSlider/ListView render
+  scene/site/performer; PersonCard `type="performer"`. Watchlist/blocklist
+  buttons hidden for TPDB cards (both are TMDB-keyed; E5 "small adapt"
+  deferred — decide in F whether blocklist survives at all).
+- **E1/E2/E5 done** — home sliders Recent Scenes / Sites / Performers
+  (`DiscoverSliderType` appended, bootstrapped at startup for existing
+  installs), discover pages `/discover/{scenes,sites,performers}` (no
+  filters: TPDB has none), sidebar + mobile menu links, search typed to TPDB
+  results, `useDiscover` hide-* filters cover scene/site.
+- **E3 done** — `SceneDetails`, `SiteDetails` (years with library status +
+  site scenes grid), `PerformerDetails` (bio, aliases, scenes grid) + pages.
+  Play button only when `mediaInfo.mediaUrl` exists (Jellyfin); no Stash
+  deep link yet (no Stash scene id is stored — see C5 note).
+- **E4 done** — `SceneRequestModal` / `SiteRequestModal` (year picker,
+  pre-checked/disabled years from library + active requests), dispatcher,
+  `RequestButton`, `StatusBadge` ("Manage Scene/Site", "Open in Whisparr"),
+  `useRequestTitle` hook feeding RequestCard/RequestItem (TPDB posters,
+  `/scene|/site/<tpdbId>` links, "Years" label, `failureReason` shown in
+  red on FAILED). Edit mode on pending scene/site requests = approve/cancel
+  only (PUT /request/:id has no scene/site branch — F/G follow-up).
+  `ManageSlideOver` untouched (movie/tv-only callers, deleted in F).
+- `en.json` regenerated via `i18n:extract`. Gate: typecheck server+client,
+  lint, tests, `next build`.
+
 ## Done (phase D)
 
 - **D1t** — `MediaRequest.createWhisparrRequest`: scene (movie-shaped, one
@@ -125,8 +158,9 @@
 
 ## Next
 
-- Phase E (frontend: scene/site discover, details, request modal, request list
-  with failureReason)
+- Phase F (removal sweep: TMDB/Radarr/Sonarr/Plex/movie/tv code)
+- Browser walkthrough of the new pages against live TPDB/Whisparr (needs a
+  configured dev instance: settings.json + Jellyfin auth)
 - Live connection tests of C3/C6 settings pages against real instances
 - Jellyfin pathMappings editor in settings UI (C6 follow-up)
 

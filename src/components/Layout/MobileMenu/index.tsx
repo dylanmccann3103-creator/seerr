@@ -12,6 +12,7 @@ import {
   FilmIcon,
   SparklesIcon,
   TvIcon,
+  UserGroupIcon,
   UsersIcon,
 } from '@heroicons/react/24/outline';
 import {
@@ -22,6 +23,7 @@ import {
   FilmIcon as FilledFilmIcon,
   SparklesIcon as FilledSparklesIcon,
   TvIcon as FilledTvIcon,
+  UserGroupIcon as FilledUserGroupIcon,
   UsersIcon as FilledUsersIcon,
   XMarkIcon,
 } from '@heroicons/react/24/solid';
@@ -79,18 +81,25 @@ const MobileMenu = ({
       activeRegExp: /^\/(discover\/?)?$/,
     },
     {
-      href: '/discover/movies',
-      content: intl.formatMessage(menuMessages.browsemovies),
+      href: '/discover/scenes',
+      content: intl.formatMessage(menuMessages.browsescenes),
       svgIcon: <FilmIcon className="h-6 w-6" />,
       svgIconSelected: <FilledFilmIcon className="h-6 w-6" />,
-      activeRegExp: /^\/discover\/movies$/,
+      activeRegExp: /^\/discover\/scenes$/,
     },
     {
-      href: '/discover/tv',
-      content: intl.formatMessage(menuMessages.browsetv),
+      href: '/discover/sites',
+      content: intl.formatMessage(menuMessages.browsesites),
       svgIcon: <TvIcon className="h-6 w-6" />,
       svgIconSelected: <FilledTvIcon className="h-6 w-6" />,
-      activeRegExp: /^\/discover\/tv$/,
+      activeRegExp: /^\/discover\/sites$/,
+    },
+    {
+      href: '/discover/performers',
+      content: intl.formatMessage(menuMessages.browseperformers),
+      svgIcon: <UserGroupIcon className="h-6 w-6" />,
+      svgIconSelected: <FilledUserGroupIcon className="h-6 w-6" />,
+      activeRegExp: /^\/discover\/performers$/,
     },
     {
       href: '/requests',

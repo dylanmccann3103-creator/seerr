@@ -1,5 +1,7 @@
 import CollectionRequestModal from '@app/components/RequestModal/CollectionRequestModal';
 import MovieRequestModal from '@app/components/RequestModal/MovieRequestModal';
+import SceneRequestModal from '@app/components/RequestModal/SceneRequestModal';
+import SiteRequestModal from '@app/components/RequestModal/SiteRequestModal';
 import TvRequestModal from '@app/components/RequestModal/TvRequestModal';
 import { Transition } from '@headlessui/react';
 import type { MediaStatus } from '@server/constants/media';
@@ -45,6 +47,22 @@ const RequestModal = ({
           tmdbId={tmdbId}
           onUpdating={onUpdating}
           is4k={is4k}
+          editRequest={editRequest}
+        />
+      ) : type === 'scene' ? (
+        <SceneRequestModal
+          onComplete={onComplete}
+          onCancel={onCancel}
+          tmdbId={tmdbId}
+          onUpdating={onUpdating}
+          editRequest={editRequest}
+        />
+      ) : type === 'site' ? (
+        <SiteRequestModal
+          onComplete={onComplete}
+          onCancel={onCancel}
+          tmdbId={tmdbId}
+          onUpdating={onUpdating}
           editRequest={editRequest}
         />
       ) : type === 'tv' ? (

@@ -12,6 +12,7 @@ import {
   FilmIcon,
   SparklesIcon,
   TvIcon,
+  UserGroupIcon,
   UsersIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
@@ -23,8 +24,9 @@ import { useIntl } from 'react-intl';
 
 export const menuMessages = defineMessages('components.Layout.Sidebar', {
   dashboard: 'Discover',
-  browsemovies: 'Movies',
-  browsetv: 'Series',
+  browsescenes: 'Scenes',
+  browsesites: 'Sites',
+  browseperformers: 'Performers',
   requests: 'Requests',
   blocklist: 'Blocklist',
   issues: 'Issues',
@@ -60,16 +62,22 @@ const SidebarLinks: SidebarLinkProps[] = [
     activeRegExp: /^\/(discover\/?)?$/,
   },
   {
-    href: '/discover/movies',
-    messagesKey: 'browsemovies',
+    href: '/discover/scenes',
+    messagesKey: 'browsescenes',
     svgIcon: <FilmIcon className="mr-3 h-6 w-6" />,
-    activeRegExp: /^\/discover\/movies$/,
+    activeRegExp: /^\/discover\/scenes$/,
   },
   {
-    href: '/discover/tv',
-    messagesKey: 'browsetv',
+    href: '/discover/sites',
+    messagesKey: 'browsesites',
     svgIcon: <TvIcon className="mr-3 h-6 w-6" />,
-    activeRegExp: /^\/discover\/tv$/,
+    activeRegExp: /^\/discover\/sites$/,
+  },
+  {
+    href: '/discover/performers',
+    messagesKey: 'browseperformers',
+    svgIcon: <UserGroupIcon className="mr-3 h-6 w-6" />,
+    activeRegExp: /^\/discover\/performers$/,
   },
   {
     href: '/requests',

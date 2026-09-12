@@ -6,6 +6,12 @@ import ConfirmButton from '@app/components/Common/ConfirmButton';
 import RequestModal from '@app/components/RequestModal';
 import StatusBadge from '@app/components/StatusBadge';
 import useDeepLinks from '@app/hooks/useDeepLinks';
+import useRequestTitle, {
+  isSeasonalRequest,
+  requestLink,
+  requestMediaId,
+  requestType,
+} from '@app/hooks/useRequestTitle';
 import useToasts from '@app/hooks/useToasts';
 import { Permission, useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
@@ -25,8 +31,6 @@ import { MediaRequestStatus, MediaStatus } from '@server/constants/media';
 import type { MediaRequest } from '@server/entity/MediaRequest';
 import type { NonFunctionProperties } from '@server/interfaces/api/common';
 import type { RequestResultsResponse } from '@server/interfaces/api/requestInterfaces';
-import type { MovieDetails } from '@server/models/Movie';
-import type { TvDetails } from '@server/models/Tv';
 import axios from 'axios';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -36,6 +40,7 @@ import useSWR, { mutate } from 'swr';
 
 const messages = defineMessages('components.RequestList.RequestItem', {
   seasons: '{seasonCount, plural, one {Season} other {Seasons}}',
+  years: '{seasonCount, plural, one {Year} other {Years}}',
   failedretry: 'Something went wrong while retrying the request.',
   failedmodify: 'Something went wrong while modifying the request.',
   requested: 'Requested',
@@ -47,6 +52,7 @@ const messages = defineMessages('components.RequestList.RequestItem', {
   deleterequest: 'Delete Request',
   cancelRequest: 'Cancel Request',
   tmdbid: 'TMDB ID',
+  tpdbid: 'TPDB ID',
   tvdbid: 'TheTVDB ID',
   unknowntitle: 'Unknown Title',
   removearr: 'Remove from {arr}',
@@ -54,9 +60,16 @@ const messages = defineMessages('components.RequestList.RequestItem', {
   profileName: 'Profile',
 });
 
-const isMovie = (movie: MovieDetails | TvDetails): movie is MovieDetails => {
-  return (movie as MovieDetails).title !== undefined;
-};
+const typeLabel = (type?: string) =>
+  type === 'movie'
+    ? globalMessages.movie
+    : type === 'tv'
+      ? globalMessages.tvshow
+      : type === 'scene'
+        ? globalMessages.scene
+        : type === 'site'
+          ? globalMessages.site
+          : globalMessages.request;
 
 interface RequestItemErrorProps {
   requestData?: NonFunctionProperties<MediaRequest>;
@@ -98,23 +111,19 @@ const RequestItemError = ({
         <div className="flex w-full flex-col justify-center overflow-hidden pl-4 pr-4 sm:pr-0 xl:w-7/12 2xl:w-2/3">
           <div className="flex text-lg font-bold text-white xl:text-xl">
             {intl.formatMessage(messages.mediaerror, {
-              mediaType: intl.formatMessage(
-                requestData?.type
-                  ? requestData?.type === 'movie'
-                    ? globalMessages.movie
-                    : globalMessages.tvshow
-                  : globalMessages.request
-              ),
+              mediaType: intl.formatMessage(typeLabel(requestData?.type)),
             })}
           </div>
           {requestData && hasPermission(Permission.MANAGE_REQUESTS) && (
             <>
               <div className="card-field">
                 <span className="card-field-name">
-                  {intl.formatMessage(messages.tmdbid)}
+                  {intl.formatMessage(
+                    requestData.media.tpdbId ? messages.tpdbid : messages.tmdbid
+                  )}
                 </span>
                 <span className="flex truncate text-sm text-gray-300">
-                  {requestData.media.tmdbId}
+                  {requestData.media.tpdbId ?? requestData.media.tmdbId}
                 </span>
               </div>
               {requestData.media.tvdbId && (
@@ -155,7 +164,7 @@ const RequestItemError = ({
                     title={intl.formatMessage(messages.unknowntitle)}
                     inProgress={requestDownloadStatus.length > 0}
                     is4k={requestData.is4k}
-                    mediaType={requestData.type as 'movie' | 'tv'}
+                    mediaType={requestType(requestData)}
                     plexUrl={requestData.is4k ? plexUrl4k : plexUrl}
                     serviceUrl={
                       requestData.is4k
@@ -304,13 +313,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
   const intl = useIntl();
   const { user, hasPermission } = useUser();
   const [showEditModal, setShowEditModal] = useState(false);
-  const url =
-    request.type === 'movie'
-      ? `/api/v1/movie/${request.media.tmdbId}`
-      : `/api/v1/tv/${request.media.tmdbId}`;
-  const { data: title, error } = useSWR<MovieDetails | TvDetails>(
-    inView ? url : null
-  );
+  const { title, error } = useRequestTitle(request, inView);
   const { data: requestData, mutate: revalidate } = useSWR<
     NonFunctionProperties<MediaRequest>
   >(`/api/v1/request/${request.id}`, {
@@ -416,7 +419,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
 
   const requestDownloadStatus = getRequestDownloadStatus(
     requestData.media[requestData.is4k ? 'downloadStatus4k' : 'downloadStatus'],
-    requestData.type === 'tv'
+    isSeasonalRequest(requestData.type)
       ? requestData.seasons.map((season) => season.seasonNumber)
       : []
   );
@@ -425,8 +428,8 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
     <>
       <RequestModal
         show={showEditModal}
-        tmdbId={request.media.tmdbId}
-        type={request.type as 'movie' | 'tv'}
+        tmdbId={requestMediaId(request)}
+        type={requestType(request)}
         is4k={request.is4k}
         editRequest={request}
         onCancel={() => setShowEditModal(false)}
@@ -436,11 +439,11 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
         }}
       />
       <div className="relative flex w-full flex-col justify-between overflow-hidden rounded-xl bg-gray-800 py-2 text-gray-400 shadow-md ring-1 ring-gray-700 xl:h-28 xl:flex-row">
-        {title.backdropPath && (
+        {title.backdropUrl && (
           <div className="absolute inset-0 z-0 w-full bg-cover bg-center xl:w-2/3">
             <CachedImage
-              type="tmdb"
-              src={`https://image.tmdb.org/t/p/w1920_and_h800_multi_faces/${title.backdropPath}`}
+              type={title.imageType}
+              src={title.backdropUrl}
               alt=""
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               fill
@@ -457,20 +460,12 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
         <div className="relative flex w-full flex-col justify-between overflow-hidden sm:flex-row">
           <div className="relative z-10 flex w-full items-center overflow-hidden pl-4 pr-4 sm:pr-0 xl:w-7/12 2xl:w-2/3">
             <Link
-              href={
-                requestData.type === 'movie'
-                  ? `/movie/${requestData.media.tmdbId}`
-                  : `/tv/${requestData.media.tmdbId}`
-              }
+              href={title.link}
               className="relative h-auto w-12 flex-shrink-0 scale-100 transform-gpu overflow-hidden rounded-md transition duration-300 hover:scale-105"
             >
               <CachedImage
-                type="tmdb"
-                src={
-                  title.posterPath
-                    ? `https://image.tmdb.org/t/p/w600_and_h900_bestv2${title.posterPath}`
-                    : '/images/seerr_poster_not_found.png'
-                }
+                type={title.imageType}
+                src={title.posterUrl ?? '/images/seerr_poster_not_found.png'}
                 alt=""
                 sizes="100vw"
                 style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
@@ -480,41 +475,40 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
             </Link>
             <div className="flex flex-col justify-center overflow-hidden pl-2 xl:pl-4">
               <div className="pt-0.5 text-xs font-medium text-white sm:pt-1">
-                {(isMovie(title)
-                  ? title.releaseDate
-                  : title.firstAirDate
-                )?.slice(0, 4)}
+                {title.year?.slice(0, 4)}
               </div>
               <Link
-                href={
-                  requestData.type === 'movie'
-                    ? `/movie/${requestData.media.tmdbId}`
-                    : `/tv/${requestData.media.tmdbId}`
-                }
+                href={title.link}
                 className="mr-2 min-w-0 truncate text-lg font-bold text-white hover:underline xl:text-xl"
               >
-                {isMovie(title) ? title.title : title.name}
+                {title.name}
               </Link>
-              {!isMovie(title) && request.seasons.length > 0 && (
-                <div className="card-field">
-                  <span className="card-field-name">
-                    {intl.formatMessage(messages.seasons, {
-                      seasonCount: request.seasons.length,
-                    })}
-                  </span>
-                  <div className="hide-scrollbar flex flex-nowrap overflow-x-scroll">
-                    {request.seasons.map((season) => (
-                      <span key={`season-${season.id}`} className="mr-2">
-                        <Badge>
-                          {season.seasonNumber === 0
-                            ? intl.formatMessage(globalMessages.specials)
-                            : season.seasonNumber}
-                        </Badge>
-                      </span>
-                    ))}
+              {isSeasonalRequest(request.type) &&
+                request.seasons.length > 0 && (
+                  <div className="card-field">
+                    <span className="card-field-name">
+                      {intl.formatMessage(
+                        request.type === 'site'
+                          ? messages.years
+                          : messages.seasons,
+                        {
+                          seasonCount: request.seasons.length,
+                        }
+                      )}
+                    </span>
+                    <div className="hide-scrollbar flex flex-nowrap overflow-x-scroll">
+                      {request.seasons.map((season) => (
+                        <span key={`season-${season.id}`} className="mr-2">
+                          <Badge>
+                            {season.seasonNumber === 0
+                              ? intl.formatMessage(globalMessages.specials)
+                              : season.seasonNumber}
+                          </Badge>
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           </div>
           <div className="z-10 ml-4 mt-4 flex w-full flex-col justify-center gap-1 overflow-hidden pr-4 text-sm sm:ml-2 sm:mt-0 xl:flex-1 xl:pr-0">
@@ -529,7 +523,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
               ) : requestData.status === MediaRequestStatus.FAILED ? (
                 <Badge
                   badgeType="danger"
-                  href={`/${requestData.type}/${requestData.media.tmdbId}?manage=1`}
+                  href={`${requestLink(requestData)}?manage=1`}
                 >
                   {intl.formatMessage(globalMessages.failed)}
                 </Badge>
@@ -538,7 +532,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
                   MediaStatus.DELETED ? (
                 <Badge
                   badgeType="warning"
-                  href={`/${requestData.type}/${requestData.media.tmdbId}?manage=1`}
+                  href={`${requestLink(requestData)}?manage=1`}
                 >
                   {intl.formatMessage(globalMessages.pending)}
                 </Badge>
@@ -548,11 +542,11 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
                     requestData.media[requestData.is4k ? 'status4k' : 'status']
                   }
                   downloadItem={requestDownloadStatus}
-                  title={isMovie(title) ? title.title : title.name}
+                  title={title.name}
                   inProgress={requestDownloadStatus.length > 0}
                   is4k={requestData.is4k}
-                  tmdbId={requestData.media.tmdbId}
-                  mediaType={requestData.type as 'movie' | 'tv'}
+                  tmdbId={requestMediaId(requestData)}
+                  mediaType={requestType(requestData)}
                   plexUrl={requestData.is4k ? plexUrl4k : plexUrl}
                   serviceUrl={
                     requestData.is4k
@@ -562,6 +556,15 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
                 />
               )}
             </div>
+            {requestData.status === MediaRequestStatus.FAILED &&
+              requestData.failureReason && (
+                <div
+                  className="truncate text-xs text-red-400"
+                  title={requestData.failureReason}
+                >
+                  {requestData.failureReason}
+                </div>
+              )}
             <div className="card-field">
               {hasPermission(
                 [Permission.MANAGE_REQUESTS, Permission.REQUEST_VIEW],
@@ -720,7 +723,12 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
                     <TrashIcon />
                     <span>
                       {intl.formatMessage(messages.removearr, {
-                        arr: request.type === 'movie' ? 'Radarr' : 'Sonarr',
+                        arr:
+                          request.type === 'movie'
+                            ? 'Radarr'
+                            : request.type === 'tv'
+                              ? 'Sonarr'
+                              : 'Whisparr',
                       })}
                     </span>
                   </ConfirmButton>
@@ -757,7 +765,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
           {requestData.status === MediaRequestStatus.PENDING &&
             (hasPermission(Permission.MANAGE_REQUESTS) ||
               (requestData.requestedBy.id === user?.id &&
-                (requestData.type === 'tv' ||
+                (isSeasonalRequest(requestData.type) ||
                   hasPermission(Permission.REQUEST_ADVANCED)))) && (
               <span className="w-full">
                 <Button
