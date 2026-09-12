@@ -58,6 +58,8 @@ export interface JellyfinSettings {
   // Gates availability/library scanning only — never authentication. Defaults
   // to true so existing installs keep their current behavior.
   enabled: boolean;
+  // Whisparr path prefix -> Jellyfin path prefix (containers mount differently).
+  pathMappings: { from: string; to: string }[];
 }
 export interface TautulliSettings {
   hostname?: string;
@@ -411,6 +413,7 @@ export type JobId =
   | 'plex-refresh-token'
   | 'radarr-scan'
   | 'sonarr-scan'
+  | 'whisparr-scan'
   | 'download-sync'
   | 'download-sync-reset'
   | 'jellyfin-recently-added-scan'
@@ -504,6 +507,7 @@ class Settings {
         serverId: '',
         apiKey: '',
         enabled: true,
+        pathMappings: [],
       },
       tautulli: {},
       metadataSettings: {
@@ -664,6 +668,9 @@ class Settings {
         },
         'sonarr-scan': {
           schedule: '0 30 4 * * *',
+        },
+        'whisparr-scan': {
+          schedule: '0 45 4 * * *',
         },
         'availability-sync': {
           schedule: '0 0 5 * * *',

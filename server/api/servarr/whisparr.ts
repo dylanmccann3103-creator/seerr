@@ -14,7 +14,7 @@ export interface WhisparrSeason {
     percentOfEpisodes: number;
   };
 }
-interface EpisodeResult {
+export interface EpisodeResult {
   seriesId: number;
   episodeFileId: number;
   seasonNumber: number;
@@ -31,6 +31,9 @@ interface EpisodeResult {
   tvdbId: number;
   /** Also live: `releaseDate` (YYYY-MM-DD) instead of airDate, and `actors[].tpdbId`. */
   releaseDate?: string;
+  // ponytail: Sonarr v3 shape, only present when hasFile and the request passed
+  // includeEpisodeFile=true. Unverifiable live until the test instance has a file.
+  episodeFile?: { id: number; path: string; relativePath?: string };
   id: number;
 }
 
@@ -337,10 +340,13 @@ class WhisparrAPI extends ServarrBase<{
     }
   }
 
-  public async getEpisodes(seriesId: number): Promise<EpisodeResult[]> {
+  public async getEpisodes(
+    seriesId: number,
+    { includeEpisodeFile = false }: { includeEpisodeFile?: boolean } = {}
+  ): Promise<EpisodeResult[]> {
     try {
       const response = await this.axios.get<EpisodeResult[]>('/episode', {
-        params: { seriesId },
+        params: { seriesId, includeEpisodeFile },
       });
       return response.data;
     } catch (e) {

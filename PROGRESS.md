@@ -21,8 +21,27 @@
 - **Stash tier-2**: ThePornDB is configured as stash-box endpoint, but
   library is empty (0 scenes, only builtin_autotag scraper). Tier 1 path
   match leads; tier 2 verifiable once scenes exist.
-- **Next: C4/C5 scanners.** Whisparr test instance holds 1 site
-  (Brazzers, tvdbId 92, 277 episodes, 0 files) — pre-existing, not ours.
+- **C4+C5 done** — one `whisparr-scan` job (`server/lib/scanners/whisparr/`)
+  is the single writer for SITE/SCENE media: sites → SITE rows + year
+  seasons (monitored/no file → PROCESSING), file-bearing episodes → SCENE
+  rows (tpdbId = Whisparr episode `tvdbId`, `tmdbId = 0` placeholder,
+  `externalServiceId` = episode id), orphan cleanup + request decline.
+  Availability is library-driven (D3): `server/lib/scanners/library.ts`
+  maps Whisparr file paths through per-library prefix tables and asks
+  Stash (`findSceneByPath`) / Jellyfin (preloaded `getLibraryPaths`) —
+  AVAILABLE only when a library has the file. 4 tests. Live-run against
+  Whisparr+Stash: Brazzers → PROCESSING, 11 year-seasons, 0 scenes (no
+  files yet).
+  Deviations from PLAN: (1) no separate Stash job and no rewrite of the
+  old Jellyfin scanner — both libraries are lookups inside the Whisparr
+  scan (only Whisparr can map path→scene id); old jellyfin/sonarr scanners
+  + jobs stay until F1. (2) `JellyfinSettings.pathMappings` added backend-
+  only (default `[]`), needs a C6-style editor in the Jellyfin settings UI.
+  (3) Stash tier-2 (stash_id) not wired: Whisparr only exposes numeric
+  `_id`, no uuid. Unverified: `episodeFile.path` shape (Sonarr v3 assumed,
+  test instance has no files).
+- Whisparr test instance holds 1 site (Brazzers, tvdbId 92, 277 episodes,
+  0 files) — pre-existing, not ours.
 
 ## Done
 
@@ -76,8 +95,9 @@
 
 ## Next
 
-- C4 Jellyfin scanner adapt, C5 Whisparr + Stash scanners (unblocked)
+- Phase D (request flow: D1t TPDB validation, D2t sendToWhisparr, D3t, D4t)
 - Live connection tests of C3/C6 settings pages against real instances
+- Jellyfin pathMappings editor in settings UI (C6 follow-up)
 
 ## Open issues
 

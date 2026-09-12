@@ -93,6 +93,7 @@ export interface JellyfinLibraryItem {
   IndexNumberEnd?: number;
   ParentIndexNumber?: number;
   MediaType: string;
+  Path?: string;
 }
 
 export interface JellyfinMediaStream {
@@ -459,6 +460,38 @@ class JellyfinAPI extends ExternalAPI {
       logger.error(
         `Something went wrong while getting library content from the Jellyfin server: ${e.message}`,
         { label: 'Jellyfin API', error: e?.response?.status }
+      );
+
+      if (!e.response) {
+        throw new ApiError(502, ApiErrorCode.ConnectionError);
+      }
+
+      throw new ApiError(e.response.status, ApiErrorCode.InvalidAuthToken);
+    }
+  }
+
+  // Every playable file path in a library, for Whisparr-driven path matching.
+  // ponytail: one unpaginated call; page with StartIndex/Limit if a library
+  // ever grows past what Jellyfin returns in a single response.
+  public async getLibraryPaths(id: string): Promise<string[]> {
+    try {
+      const response = await this.get<JellyfinItemsReponse>('/Items', {
+        params: {
+          ParentId: id,
+          Recursive: true,
+          IncludeItemTypes: 'Episode,Movie,Video',
+          fields: 'Path',
+          EnableImages: false,
+        },
+      });
+
+      return (response.Items ?? [])
+        .map((item) => item.Path)
+        .filter((p): p is string => !!p);
+    } catch (e) {
+      logger.error(
+        `Something went wrong while getting library paths from the Jellyfin server: ${e.message}`,
+        { label: 'Jellyfin API', error: e.response?.status }
       );
 
       if (!e.response) {
