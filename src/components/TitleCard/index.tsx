@@ -300,19 +300,27 @@ const TitleCard = ({
 
   const closeModal = useCallback(() => setShowRequestModal(false), []);
 
-  const showRequestButton = hasPermission(
-    [
-      Permission.REQUEST,
-      mediaType === 'movie' || mediaType === 'collection'
-        ? Permission.REQUEST_MOVIE
-        : Permission.REQUEST_TV,
-    ],
-    { type: 'or' }
-  );
+  // TPDB-backed cards: absolute poster urls, /scene|/site links, plain
+  // REQUEST permission. Watchlist/blocklist are TMDB-keyed and stay hidden.
+  const isTpdb = mediaType === 'scene' || mediaType === 'site';
 
-  const showHideButton = hasPermission([Permission.MANAGE_BLOCKLIST], {
-    type: 'or',
-  });
+  const showRequestButton = isTpdb
+    ? hasPermission(Permission.REQUEST)
+    : hasPermission(
+        [
+          Permission.REQUEST,
+          mediaType === 'movie' || mediaType === 'collection'
+            ? Permission.REQUEST_MOVIE
+            : Permission.REQUEST_TV,
+        ],
+        { type: 'or' }
+      );
+
+  const showHideButton =
+    !isTpdb &&
+    hasPermission([Permission.MANAGE_BLOCKLIST], {
+      type: 'or',
+    });
 
   return (
     <div
@@ -328,7 +336,11 @@ const TitleCard = ({
             ? 'movie'
             : mediaType === 'collection'
               ? 'collection'
-              : 'tv'
+              : mediaType === 'scene'
+                ? 'scene'
+                : mediaType === 'site'
+                  ? 'site'
+                  : 'tv'
         }
         onComplete={requestComplete}
         onUpdating={requestUpdating}
@@ -374,12 +386,14 @@ const TitleCard = ({
       >
         <div className="absolute inset-0 h-full w-full overflow-hidden">
           <CachedImage
-            type="tmdb"
+            type={isTpdb ? 'tpdb' : 'tmdb'}
             className="absolute inset-0 h-full w-full"
             alt=""
             src={
               image
-                ? `https://image.tmdb.org/t/p/w300_and_h450_face${image}`
+                ? isTpdb
+                  ? image
+                  : `https://image.tmdb.org/t/p/w300_and_h450_face${image}`
                 : `/images/seerr_poster_not_found_logo_top.png`
             }
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
@@ -390,7 +404,11 @@ const TitleCard = ({
               className={`pointer-events-none z-40 self-start rounded-full border shadow-md ${
                 mediaType === 'movie' || mediaType === 'collection'
                   ? 'border-blue-500 bg-blue-600/80'
-                  : 'border-purple-600 bg-purple-600/80'
+                  : mediaType === 'scene'
+                    ? 'border-pink-500 bg-pink-600/80'
+                    : mediaType === 'site'
+                      ? 'border-emerald-500 bg-emerald-600/80'
+                      : 'border-purple-600 bg-purple-600/80'
               }`}
             >
               <div className="flex h-4 items-center px-2 py-2 text-center text-xs font-medium uppercase tracking-wider text-white sm:h-5">
@@ -398,12 +416,17 @@ const TitleCard = ({
                   ? intl.formatMessage(globalMessages.movie)
                   : mediaType === 'collection'
                     ? intl.formatMessage(globalMessages.collection)
-                    : intl.formatMessage(globalMessages.tvshow)}
+                    : mediaType === 'scene'
+                      ? intl.formatMessage(globalMessages.scene)
+                      : mediaType === 'site'
+                        ? intl.formatMessage(globalMessages.site)
+                        : intl.formatMessage(globalMessages.tvshow)}
               </div>
             </div>
             {showDetail && currentStatus !== MediaStatus.BLOCKLISTED && (
               <div className="flex flex-col gap-1">
-                {user?.userType !== UserType.PLEX &&
+                {!isTpdb &&
+                  user?.userType !== UserType.PLEX &&
                   (toggleWatchlist ? (
                     <Button
                       buttonType={'ghost'}
@@ -500,7 +523,9 @@ const TitleCard = ({
                     ? `/movie/${id}`
                     : mediaType === 'collection'
                       ? `/collection/${id}`
-                      : `/tv/${id}`
+                      : isTpdb
+                        ? `/${mediaType}/${id}`
+                        : `/tv/${id}`
                 }
                 className="absolute inset-0 h-full w-full cursor-pointer overflow-hidden text-left"
                 style={{

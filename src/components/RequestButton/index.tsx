@@ -45,7 +45,7 @@ interface ButtonOption {
 }
 
 interface RequestButtonProps {
-  mediaType: 'movie' | 'tv';
+  mediaType: 'movie' | 'tv' | 'scene' | 'site';
   onUpdate: () => void;
   tmdbId: number;
   media?: Media;

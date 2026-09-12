@@ -7,14 +7,33 @@ import { useUser } from '@app/hooks/useUser';
 import { ArrowRightCircleIcon } from '@heroicons/react/24/outline';
 import { MediaStatus } from '@server/constants/media';
 import { Permission } from '@server/lib/permissions';
+import type { PerformerResult } from '@server/models/Performer';
+import type { SceneResult } from '@server/models/Scene';
 import type {
   MovieResult,
   PersonResult,
   TvResult,
 } from '@server/models/Search';
+import type { SiteResult } from '@server/models/Site';
 import Link from 'next/link';
 import { useEffect } from 'react';
 import useSWRInfinite from 'swr/infinite';
+
+type SliderResult =
+  | MovieResult
+  | TvResult
+  | PersonResult
+  | SceneResult
+  | SiteResult
+  | PerformerResult;
+
+const isRequestable = (
+  i: SliderResult
+): i is MovieResult | TvResult | SceneResult | SiteResult =>
+  i.mediaType === 'movie' ||
+  i.mediaType === 'tv' ||
+  i.mediaType === 'scene' ||
+  i.mediaType === 'site';
 
 interface MixedResult {
   page: number;
@@ -62,13 +81,13 @@ const MediaSlider = ({
 
   let titles = (data ?? []).reduce(
     (a, v) => [...a, ...v.results],
-    [] as (MovieResult | TvResult | PersonResult)[]
+    [] as SliderResult[]
   );
 
   if (settings.currentSettings.hideAvailable) {
     titles = titles.filter(
       (i) =>
-        !(i.mediaType === 'movie' || i.mediaType === 'tv') ||
+        !isRequestable(i) ||
         (i.mediaInfo?.status !== MediaStatus.AVAILABLE &&
           i.mediaInfo?.status !== MediaStatus.PARTIALLY_AVAILABLE)
     );
@@ -77,14 +96,13 @@ const MediaSlider = ({
   if (settings.currentSettings.hideBlocklisted) {
     titles = titles.filter(
       (i) =>
-        !(i.mediaType === 'movie' || i.mediaType === 'tv') ||
-        i.mediaInfo?.status !== MediaStatus.BLOCKLISTED
+        !isRequestable(i) || i.mediaInfo?.status !== MediaStatus.BLOCKLISTED
     );
   }
 
   if (settings.currentSettings.hideRequested) {
     titles = titles.filter((i) => {
-      if (i.mediaType !== 'movie' && i.mediaType !== 'tv') {
+      if (!isRequestable(i)) {
         return true;
       }
 
@@ -169,6 +187,39 @@ const MediaSlider = ({
               profilePath={title.profilePath}
             />
           );
+        case 'scene':
+          return (
+            <TitleCard
+              key={title.id}
+              id={title.id}
+              image={title.posterPath}
+              status={title.mediaInfo?.status}
+              title={title.title}
+              mediaType={title.mediaType}
+              inProgress={(title.mediaInfo?.downloadStatus ?? []).length > 0}
+            />
+          );
+        case 'site':
+          return (
+            <TitleCard
+              key={title.id}
+              id={title.id}
+              image={title.posterPath}
+              status={title.mediaInfo?.status}
+              title={title.name}
+              mediaType={title.mediaType}
+              inProgress={(title.mediaInfo?.downloadStatus ?? []).length > 0}
+            />
+          );
+        case 'performer':
+          return (
+            <PersonCard
+              type="performer"
+              personId={title.id}
+              name={title.name}
+              profilePath={title.posterPath}
+            />
+          );
       }
     });
 
@@ -179,7 +230,9 @@ const MediaSlider = ({
         posters={titles
           .slice(20, 24)
           .map((title) =>
-            title.mediaType !== 'person' ? title.posterPath : undefined
+            title.mediaType !== 'person' && title.mediaType !== 'performer'
+              ? title.posterPath
+              : undefined
           )}
       />
     );

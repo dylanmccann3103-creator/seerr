@@ -6,16 +6,27 @@ import useVerticalScroll from '@app/hooks/useVerticalScroll';
 import globalMessages from '@app/i18n/globalMessages';
 import { MediaStatus } from '@server/constants/media';
 import type { WatchlistItem } from '@server/interfaces/api/discoverInterfaces';
+import type { PerformerResult } from '@server/models/Performer';
+import type { SceneResult } from '@server/models/Scene';
 import type {
   CollectionResult,
   MovieResult,
   PersonResult,
   TvResult,
 } from '@server/models/Search';
+import type { SiteResult } from '@server/models/Site';
 import { useIntl } from 'react-intl';
 
 type ListViewProps = {
-  items?: (TvResult | MovieResult | PersonResult | CollectionResult)[];
+  items?: (
+    | TvResult
+    | MovieResult
+    | PersonResult
+    | CollectionResult
+    | SceneResult
+    | SiteResult
+    | PerformerResult
+  )[];
   plexItems?: WatchlistItem[];
   isEmpty?: boolean;
   isLoading?: boolean;
@@ -139,6 +150,49 @@ const ListView = ({
                     personId={title.id}
                     name={title.name}
                     profilePath={title.profilePath}
+                    canExpand
+                  />
+                );
+                break;
+              case 'scene':
+                titleCard = (
+                  <TitleCard
+                    key={title.id}
+                    id={title.id}
+                    image={title.posterPath}
+                    status={title.mediaInfo?.status}
+                    title={title.title}
+                    mediaType={title.mediaType}
+                    inProgress={
+                      (title.mediaInfo?.downloadStatus ?? []).length > 0
+                    }
+                    canExpand
+                  />
+                );
+                break;
+              case 'site':
+                titleCard = (
+                  <TitleCard
+                    key={title.id}
+                    id={title.id}
+                    image={title.posterPath}
+                    status={title.mediaInfo?.status}
+                    title={title.name}
+                    mediaType={title.mediaType}
+                    inProgress={
+                      (title.mediaInfo?.downloadStatus ?? []).length > 0
+                    }
+                    canExpand
+                  />
+                );
+                break;
+              case 'performer':
+                titleCard = (
+                  <PersonCard
+                    type="performer"
+                    personId={title.id}
+                    name={title.name}
+                    profilePath={title.posterPath}
                     canExpand
                   />
                 );
