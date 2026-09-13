@@ -60,8 +60,6 @@ userSettingsRoutes.get<{ id: string }, UserSettingsGeneralResponse>(
         globalMovieQuotaLimit: defaultQuotas.movie.quotaLimit,
         globalTvQuotaDays: defaultQuotas.tv.quotaDays,
         globalTvQuotaLimit: defaultQuotas.tv.quotaLimit,
-        watchlistSyncMovies: user.settings?.watchlistSyncMovies,
-        watchlistSyncTv: user.settings?.watchlistSyncTv,
       });
     } catch (e) {
       next({ status: 500, message: e.message });
@@ -95,9 +93,7 @@ userSettingsRoutes.post<
 
     const oldEmail = user.email;
     user.username = req.body.username;
-    if (user.userType !== UserType.PLEX) {
-      user.email = req.body.email || user.jellyfinUsername || user.email;
-    }
+    user.email = req.body.email || user.jellyfinUsername || user.email;
 
     const existingUser = await userRepository.findOne({
       where: { email: user.email, id: Not(user.id) },
@@ -125,16 +121,12 @@ userSettingsRoutes.post<
         discoverRegion: req.body.discoverRegion,
         streamingRegion: req.body.streamingRegion,
         originalLanguage: req.body.originalLanguage,
-        watchlistSyncMovies: req.body.watchlistSyncMovies,
-        watchlistSyncTv: req.body.watchlistSyncTv,
       });
     } else {
       user.settings.locale = req.body.locale;
       user.settings.discoverRegion = req.body.discoverRegion;
       user.settings.streamingRegion = req.body.streamingRegion;
       user.settings.originalLanguage = req.body.originalLanguage;
-      user.settings.watchlistSyncMovies = req.body.watchlistSyncMovies;
-      user.settings.watchlistSyncTv = req.body.watchlistSyncTv;
     }
 
     const savedUser = await userRepository.save(user);
@@ -145,8 +137,6 @@ userSettingsRoutes.post<
       discoverRegion: savedUser.settings?.discoverRegion,
       streamingRegion: savedUser.settings?.streamingRegion,
       originalLanguage: savedUser.settings?.originalLanguage,
-      watchlistSyncMovies: savedUser.settings?.watchlistSyncMovies,
-      watchlistSyncTv: savedUser.settings?.watchlistSyncTv,
       email: savedUser.email,
     });
   } catch (e) {
@@ -260,57 +250,6 @@ userSettingsRoutes.post<
     next({ status: 500, message: e.message });
   }
 });
-
-userSettingsRoutes.delete<{ id: string }>(
-  '/linked-accounts/plex',
-  isOwnProfileOrAdmin(),
-  async (req, res) => {
-    const settings = getSettings();
-    const userRepository = getRepository(User);
-
-    // Make sure Plex login is enabled
-    if (settings.main.mediaServerType !== MediaServerType.PLEX) {
-      return res.status(500).json({ message: 'Plex login is disabled' });
-    }
-
-    try {
-      const user = await userRepository
-        .createQueryBuilder('user')
-        .addSelect('user.password')
-        .where({
-          id: Number(req.params.id),
-        })
-        .getOne();
-
-      if (!user) {
-        return res.status(404).json({ message: 'User not found.' });
-      }
-
-      if (user.id === 1) {
-        return res.status(400).json({
-          message:
-            'Cannot unlink media server accounts for the primary administrator.',
-        });
-      }
-
-      if (!user.email || !user.password) {
-        return res.status(400).json({
-          message: 'User does not have a local email or password set.',
-        });
-      }
-
-      user.userType = UserType.LOCAL;
-      user.plexId = null;
-      user.plexUsername = null;
-      user.plexToken = null;
-      await userRepository.save(user);
-
-      return res.status(204).send();
-    } catch (e) {
-      return res.status(500).json({ message: e.message });
-    }
-  }
-);
 
 userSettingsRoutes.post<{ username: string; password: string }>(
   '/linked-accounts/jellyfin',

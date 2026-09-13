@@ -72,12 +72,6 @@ const Setup = () => {
     (library) => library.enabled
   );
 
-  const { data: backdrops } = useSWR<string[]>('/api/v1/backdrops', {
-    refreshInterval: 0,
-    refreshWhenHidden: false,
-    revalidateOnFocus: false,
-  });
-
   useEffect(() => {
     if (settings.currentSettings.initialized) {
       router.push('/');
@@ -106,7 +100,11 @@ const Setup = () => {
   return (
     <div className="relative flex min-h-screen flex-col justify-center bg-gray-900 py-12">
       <PageTitle title={intl.formatMessage(messages.setup)} />
-      <ImageFader backgroundImages={backdrops ?? []} />
+      <ImageFader
+        backgroundImages={[1, 2, 3, 4, 5, 6].map(
+          (i) => `/images/rotate${i}.jpg`
+        )}
+      />
       <div className="absolute right-4 top-4 z-50">
         <LanguagePicker />
       </div>

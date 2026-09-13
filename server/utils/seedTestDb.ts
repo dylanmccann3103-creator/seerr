@@ -34,22 +34,14 @@ function assertTestDatabase(operation: string, allowOutsideTest = false): void {
 async function seedTestUsers(): Promise<void> {
   const userRepository = getRepository(User);
 
-  const admin = await userRepository.findOne({
-    select: { id: true, plexId: true },
-    where: { id: 1 },
-  });
-
   // Create the admin user
   const user =
     (await userRepository.findOne({
       where: { email: 'admin@seerr.dev' },
     })) ?? new User();
-  user.plexId = admin?.plexId ?? 1;
-  user.plexToken = '1234';
-  user.plexUsername = 'admin';
   user.username = 'admin';
   user.email = 'admin@seerr.dev';
-  user.userType = UserType.PLEX;
+  user.userType = UserType.LOCAL;
   user.password = TEST_USER_PASSWORD_HASH;
   user.permissions = 2;
   user.avatar = gravatarUrl('admin@seerr.dev', { default: 'mm', size: 200 });
@@ -60,12 +52,9 @@ async function seedTestUsers(): Promise<void> {
     (await userRepository.findOne({
       where: { email: 'friend@seerr.dev' },
     })) ?? new User();
-  otherUser.plexId = admin?.plexId ?? 1;
-  otherUser.plexToken = '1234';
-  otherUser.plexUsername = 'friend';
   otherUser.username = 'friend';
   otherUser.email = 'friend@seerr.dev';
-  otherUser.userType = UserType.PLEX;
+  otherUser.userType = UserType.LOCAL;
   otherUser.password = TEST_USER_PASSWORD_HASH;
   otherUser.permissions = 32;
   otherUser.avatar = gravatarUrl('friend@seerr.dev', {

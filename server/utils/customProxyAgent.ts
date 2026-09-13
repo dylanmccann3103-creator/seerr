@@ -155,7 +155,7 @@ export default async function createCustomProxyAgent(
   }
 
   try {
-    await axios.head('https://www.google.com');
+    await axios.head('https://api.theporndb.net');
     logger.debug('HTTP(S) proxy connected successfully', { label: 'Proxy' });
   } catch (e) {
     logger.error(

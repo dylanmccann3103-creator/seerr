@@ -1,18 +1,6 @@
 import { LRUCache } from 'lru-cache';
 
-export type AvailableCacheIds =
-  | 'tmdb'
-  | 'tmdbscan'
-  | 'radarr'
-  | 'sonarr'
-  | 'rt'
-  | 'imdb'
-  | 'github'
-  | 'plextv'
-  | 'plexwatchlist'
-  | 'tvdb'
-  | 'tpdb'
-  | 'whisparr';
+export type AvailableCacheIds = 'tpdb' | 'whisparr';
 
 const DEFAULT_TTL = 300;
 
@@ -20,41 +8,10 @@ const OBJECT_VALUE_SIZE = 80;
 const PROMISE_VALUE_SIZE = 80;
 const ARRAY_VALUE_SIZE = 40;
 
-// Limits key count, not memory, since TMDB never caps the credits rosters.
-const TMDB_MAX_KEYS = 1000;
-
-// Backstop against unbounded growth as the 15 minute TTL is what bounds this tier.
-const TMDB_SCAN_MAX_KEYS = 2000;
-
-// Only the rolling quality profile, root folder and language profile lookups reach
-// these tiers, and keys are prefixed by server url, so this is a few keys per server.
-const RADARR_MAX_KEYS = 64;
-const SONARR_MAX_KEYS = 64;
-
-// One key per searched title, each holding twenty search hits.
-const RT_MAX_KEYS = 500;
-
-// One key per IMDb id, requested from the same endpoint as the RT ratings.
-const IMDB_MAX_KEYS = 500;
-
-// Releases and commits, varying only by page size and branch.
-const GITHUB_MAX_KEYS = 16;
-
-// Watchlist item metadata, shared between users as the token is not part of the key.
-const PLEX_TV_MAX_KEYS = 5000;
-
-// Keyed by auth token, so one key per Plex linked user.
-const PLEX_WATCHLIST_MAX_KEYS = 500;
-
-// Several keys per show, holding the largest payloads of any tier as the extended
-// series lookup carries every episode.
-const TVDB_MAX_KEYS = 500;
-
 // One key per scene/site/performer lookup or search page.
 const TPDB_MAX_KEYS = 1000;
 
-// Same shape as Sonarr: rolling quality profile / root folder lookups, a few
-// keys per server.
+// Rolling quality profile / root folder lookups, a few keys per server.
 const WHISPARR_MAX_KEYS = 64;
 
 export interface CacheStats {
@@ -132,8 +89,7 @@ class LruCacheStore implements CacheStore {
     });
   }
 
-  // Cloned on read because callers mutate what they get back, as getTvSeason
-  // does when it rewrites still_path in place.
+  // Cloned on read because callers mutate what they get back.
   public get<T>(key: string): T | undefined {
     const entry = this.cache.get(key);
 
@@ -226,39 +182,6 @@ class Cache {
 
 class CacheManager {
   private availableCaches: Record<AvailableCacheIds, Cache> = {
-    tmdb: new Cache('tmdb', 'The Movie Database API', {
-      stdTtl: 21600,
-      max: TMDB_MAX_KEYS,
-    }),
-    tmdbscan: new Cache('tmdbscan', 'The Movie Database API (Library Scans)', {
-      stdTtl: 900,
-      max: TMDB_SCAN_MAX_KEYS,
-    }),
-    radarr: new Cache('radarr', 'Radarr API', { max: RADARR_MAX_KEYS }),
-    sonarr: new Cache('sonarr', 'Sonarr API', { max: SONARR_MAX_KEYS }),
-    rt: new Cache('rt', 'Rotten Tomatoes API', {
-      stdTtl: 43200,
-      max: RT_MAX_KEYS,
-    }),
-    imdb: new Cache('imdb', 'IMDB Radarr Proxy', {
-      stdTtl: 43200,
-      max: IMDB_MAX_KEYS,
-    }),
-    github: new Cache('github', 'GitHub API', {
-      stdTtl: 21600,
-      max: GITHUB_MAX_KEYS,
-    }),
-    plextv: new Cache('plextv', 'Plex TV', {
-      stdTtl: 86400 * 7, // 1 week cache
-      max: PLEX_TV_MAX_KEYS,
-    }),
-    plexwatchlist: new Cache('plexwatchlist', 'Plex Watchlist', {
-      max: PLEX_WATCHLIST_MAX_KEYS,
-    }),
-    tvdb: new Cache('tvdb', 'The TVDB API', {
-      stdTtl: 21600,
-      max: TVDB_MAX_KEYS,
-    }),
     tpdb: new Cache('tpdb', 'ThePornDB API', {
       stdTtl: 21600,
       max: TPDB_MAX_KEYS,

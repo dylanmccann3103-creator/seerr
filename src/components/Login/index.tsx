@@ -16,7 +16,6 @@ import Image from 'next/image';
 import { useEffect, useRef, useState, type JSX } from 'react';
 import { useIntl } from 'react-intl';
 import { CSSTransition, SwitchTransition } from 'react-transition-group';
-import useSWR from 'swr';
 
 const messages = defineMessages('components.Login', {
   signin: 'Sign In',
@@ -44,12 +43,6 @@ const Login = () => {
       router.push('/');
     }
   }, [user, router]);
-
-  const { data: backdrops } = useSWR<string[]>('/api/v1/backdrops', {
-    refreshInterval: 0,
-    refreshWhenHidden: false,
-    revalidateOnFocus: false,
-  });
 
   const mediaServerName = 'Jellyfin';
   const MediaServerLogo = JellyfinLogo;
@@ -96,7 +89,11 @@ const Login = () => {
   return (
     <div className="relative flex min-h-screen flex-col bg-gray-900 py-14">
       <PageTitle title={intl.formatMessage(messages.signin)} />
-      <ImageFader backgroundImages={backdrops ?? []} />
+      <ImageFader
+        backgroundImages={[1, 2, 3, 4, 5, 6].map(
+          (i) => `/images/rotate${i}.jpg`
+        )}
+      />
       <div className="absolute right-4 top-4 z-50">
         <LanguagePicker />
       </div>

@@ -262,8 +262,6 @@ CoreApp.getInitialProps = async (initialProps) => {
     emailEnabled: false,
     newPlexLogin: true,
     youtubeUrl: '',
-    versionCheck: true,
-    plexClientIdentifier: '',
   };
 
   if (ctx.res) {
@@ -277,7 +275,7 @@ CoreApp.getInitialProps = async (initialProps) => {
     const initialized = response.data.initialized;
 
     if (!initialized) {
-      if (!router.pathname.match(/(setup|login\/plex)/)) {
+      if (!router.pathname.match(/setup/)) {
         ctx.res.writeHead(307, {
           Location: '/setup',
         });

@@ -140,7 +140,6 @@ const MediaSlider = ({
       case 'performer':
         return (
           <PersonCard
-            type="performer"
             personId={title.id}
             name={title.name}
             profilePath={title.posterPath}

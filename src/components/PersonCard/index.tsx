@@ -9,8 +9,6 @@ interface PersonCardProps {
   subName?: string;
   profilePath?: string;
   canExpand?: boolean;
-  /** performer = TPDB (absolute image url, /performer link) */
-  type?: 'person' | 'performer';
 }
 
 const PersonCard = ({
@@ -19,13 +17,12 @@ const PersonCard = ({
   subName,
   profilePath,
   canExpand = false,
-  type = 'person',
 }: PersonCardProps) => {
   const [isHovered, setHovered] = useState(false);
 
   return (
     <Link
-      href={`/${type}/${personId}`}
+      href={`/performer/${personId}`}
       className={canExpand ? 'w-full' : 'w-36 sm:w-36 md:w-44'}
       onMouseEnter={() => {
         setHovered(true);
@@ -54,12 +51,8 @@ const PersonCard = ({
               {profilePath ? (
                 <div className="relative h-full w-3/4 overflow-hidden rounded-full ring-1 ring-gray-700">
                   <CachedImage
-                    type={type === 'performer' ? 'tpdb' : 'tmdb'}
-                    src={
-                      type === 'performer'
-                        ? profilePath
-                        : `https://image.tmdb.org/t/p/w600_and_h900_bestv2${profilePath}`
-                    }
+                    type="tpdb"
+                    src={profilePath}
                     alt=""
                     style={{
                       width: '100%',

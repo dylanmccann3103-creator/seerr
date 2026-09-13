@@ -63,11 +63,7 @@ const StatusBadge = ({
         : mediaType === 'site'
           ? globalMessages.site
           : globalMessages.tvshow;
-  const arrName = isTpdb
-    ? 'Whisparr'
-    : mediaType === 'movie'
-      ? 'Radarr'
-      : 'Sonarr';
+  const arrName = 'Whisparr';
 
   const calculateDownloadProgress = (media: DownloadingItem) => {
     return Math.round(((media?.size - media?.sizeLeft) / media?.size) * 100);
@@ -106,9 +102,7 @@ const StatusBadge = ({
       mediaServerName:
         settings.currentSettings.mediaServerType === MediaServerType.EMBY
           ? 'Emby'
-          : settings.currentSettings.mediaServerType === MediaServerType.PLEX
-            ? 'Plex'
-            : 'Jellyfin',
+          : 'Jellyfin',
     });
   } else if (hasPermission(Permission.MANAGE_REQUESTS)) {
     if (mediaType && tmdbId) {

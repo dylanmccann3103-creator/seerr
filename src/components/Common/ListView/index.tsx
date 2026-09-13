@@ -72,7 +72,6 @@ const ListView = ({
             case 'performer':
               titleCard = (
                 <PersonCard
-                  type="performer"
                   personId={title.id}
                   name={title.name}
                   profilePath={title.posterPath}

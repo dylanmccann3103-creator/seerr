@@ -527,7 +527,15 @@ settingsRoutes.get('/cache', async (_req, res) => {
     stats: cache.getStats(),
   }));
 
-  const tmdbImageCache = await ImageProxy.getImageStats('tmdb');
+  // The two TPDB hosts each get their own proxy directory; report them as one.
+  const [tpdbCdn, tpdbThumb] = await Promise.all([
+    ImageProxy.getImageStats('tpdb-cdn'),
+    ImageProxy.getImageStats('tpdb-thumb'),
+  ]);
+  const tpdbImageCache = {
+    size: tpdbCdn.size + tpdbThumb.size,
+    imageCount: tpdbCdn.imageCount + tpdbThumb.imageCount,
+  };
   const avatarImageCache = await ImageProxy.getImageStats('avatar');
 
   const stats: DnsStats | undefined = dnsCache?.getStats();
@@ -536,7 +544,7 @@ settingsRoutes.get('/cache', async (_req, res) => {
   return res.status(200).json({
     apiCaches,
     imageCache: {
-      tmdb: tmdbImageCache,
+      tpdb: tpdbImageCache,
       avatar: avatarImageCache,
     },
     dnsCache: {

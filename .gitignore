@@ -49,9 +49,6 @@ config/logs/*.log.gz
 config/logs/*.json.gz
 config/logs/*-audit.json
 
-# anidb mapping file
-config/anime-list.xml
-
 # dist files
 dist
 

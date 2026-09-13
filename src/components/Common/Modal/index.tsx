@@ -136,7 +136,7 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
           {backdrop && (
             <div className="absolute left-0 right-0 top-0 z-0 h-64 max-h-full w-full">
               <CachedImage
-                type="tmdb"
+                type="tpdb"
                 alt=""
                 src={backdrop}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}

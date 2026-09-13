@@ -31,9 +31,9 @@ const messages = defineMessages('components.NotificationTypeSelector', {
     'Get notified when your media requests become available.',
   mediafailed: 'Request Processing Failed',
   mediafailedDescription:
-    'Send notifications when media requests fail to be added to Radarr or Sonarr.',
+    'Send notifications when media requests fail to be added to Whisparr.',
   usermediafailedDescription:
-    'Get notified when media requests fail to be added to Radarr or Sonarr.',
+    'Get notified when media requests fail to be added to Whisparr.',
   mediadeclined: 'Request Declined',
   mediadeclinedDescription:
     'Send notifications when media requests are declined.',
@@ -61,9 +61,6 @@ const messages = defineMessages('components.NotificationTypeSelector', {
     'Get notified when issues you reported are reopened.',
   adminissuereopenedDescription:
     'Get notified when issues are reopened by other users.',
-  mediaautorequested: 'Request Automatically Submitted',
-  mediaautorequestedDescription:
-    'Get notified when new media requests are automatically submitted for items on Your Watchlist.',
 });
 
 export const hasNotificationType = (
@@ -196,25 +193,6 @@ const NotificationTypeSelector = ({
             ))));
 
     const types: NotificationItem[] = [
-      {
-        id: 'media-auto-requested',
-        name: intl.formatMessage(messages.mediaautorequested),
-        description: intl.formatMessage(messages.mediaautorequestedDescription),
-        value: Notification.MEDIA_AUTO_REQUESTED,
-        hidden:
-          !user ||
-          (!user.settings?.watchlistSyncMovies &&
-            !user.settings?.watchlistSyncTv) ||
-          !hasPermission(
-            [
-              Permission.AUTO_REQUEST,
-              Permission.AUTO_REQUEST_MOVIE,
-              Permission.AUTO_REQUEST_TV,
-            ],
-            { type: 'or' }
-          ),
-        hasNotifyUser: true,
-      },
       {
         id: 'media-requested',
         name: intl.formatMessage(messages.mediarequested),

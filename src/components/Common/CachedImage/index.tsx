@@ -6,7 +6,7 @@ const imageLoader: ImageLoader = ({ src }) => src;
 
 export type CachedImageProps = ImageProps & {
   src: string;
-  type: 'tmdb' | 'avatar' | 'tvdb' | 'tpdb';
+  type: 'avatar' | 'tpdb';
 };
 
 /**
@@ -18,21 +18,7 @@ const CachedImage = ({ src, type, ...props }: CachedImageProps) => {
 
   let imageUrl: string;
 
-  if (type === 'tmdb') {
-    // tmdb stuff
-    imageUrl =
-      currentSettings.cacheImages && !src.startsWith('/')
-        ? src.replace(/^https:\/\/image\.tmdb\.org\//, '/imageproxy/tmdb/')
-        : src;
-  } else if (type === 'tvdb') {
-    imageUrl =
-      currentSettings.cacheImages && !src.startsWith('/')
-        ? src.replace(
-            /^https:\/\/artworks\.thetvdb\.com\//,
-            '/imageproxy/tvdb/'
-          )
-        : src;
-  } else if (type === 'tpdb') {
+  if (type === 'tpdb') {
     // TPDB serves images from two hosts: its main CDN and its imgproxy
     // thumbnail resizer. Both route through the proxy under a sub-path.
     imageUrl =

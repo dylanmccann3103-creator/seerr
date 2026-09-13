@@ -55,7 +55,6 @@ const messages = defineMessages('components.RequestCard', {
   failedretry: 'Something went wrong while retrying the request.',
   failedmodify: 'Something went wrong while modifying the request.',
   mediaerror: '{mediaType} Not Found',
-  tmdbid: 'TMDB ID',
   tvdbid: 'TheTVDB ID',
   approverequest: 'Approve Request',
   declinerequest: 'Decline Request',

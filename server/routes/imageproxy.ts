@@ -4,32 +4,7 @@ import { Router } from 'express';
 
 const router = Router();
 
-// Delay the initialization of ImageProxy instances until the proxy (if any) is properly configured
-let _tmdbImageProxy: ImageProxy;
-function initTmdbImageProxy() {
-  if (!_tmdbImageProxy) {
-    _tmdbImageProxy = new ImageProxy('tmdb', 'https://image.tmdb.org', {
-      rateLimitOptions: {
-        maxRequests: 20,
-        maxRPS: 50,
-      },
-    });
-  }
-  return _tmdbImageProxy;
-}
-let _tvdbImageProxy: ImageProxy;
-function initTvdbImageProxy() {
-  if (!_tvdbImageProxy) {
-    _tvdbImageProxy = new ImageProxy('tvdb', 'https://artworks.thetvdb.com', {
-      rateLimitOptions: {
-        maxRequests: 20,
-        maxRPS: 50,
-      },
-    });
-  }
-  return _tvdbImageProxy;
-}
-
+// Delay the initialization of ImageProxy instances until the proxy (if any) is properly configured.
 // TPDB serves images from multiple hosts (its main CDN and its imgproxy
 // thumbnail resizer). Only these two are ever proxied; the sub-host is the
 // first path segment after '/tpdb/' (e.g. /imageproxy/tpdb/cdn/...).
@@ -64,11 +39,7 @@ router.get<{
 
   try {
     let imageData;
-    if (req.params.type === 'tmdb') {
-      imageData = await initTmdbImageProxy().getImage(imagePath);
-    } else if (req.params.type === 'tvdb') {
-      imageData = await initTvdbImageProxy().getImage(imagePath);
-    } else if (req.params.type === 'tpdb') {
+    if (req.params.type === 'tpdb') {
       const [tpdbHost, ...tpdbPath] = req.params.path;
 
       if (!(tpdbHost in tpdbHosts)) {

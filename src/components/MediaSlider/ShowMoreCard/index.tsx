@@ -60,8 +60,8 @@ const ShowMoreCard = ({ url, posters }: ShowMoreCardProps) => {
               {posters[0] && (
                 <div className="">
                   <CachedImage
-                    type="tmdb"
-                    src={`https://image.tmdb.org/t/p/w300_and_h450_face${posters[0]}`}
+                    type="tpdb"
+                    src={posters[0]}
                     alt=""
                     className="rounded-md"
                     width={300}
@@ -72,8 +72,8 @@ const ShowMoreCard = ({ url, posters }: ShowMoreCardProps) => {
               {posters[1] && (
                 <div className="">
                   <CachedImage
-                    type="tmdb"
-                    src={`https://image.tmdb.org/t/p/w300_and_h450_face${posters[1]}`}
+                    type="tpdb"
+                    src={posters[1]}
                     alt=""
                     className="rounded-md"
                     width={300}
@@ -84,8 +84,8 @@ const ShowMoreCard = ({ url, posters }: ShowMoreCardProps) => {
               {posters[2] && (
                 <div className="">
                   <CachedImage
-                    type="tmdb"
-                    src={`https://image.tmdb.org/t/p/w300_and_h450_face${posters[2]}`}
+                    type="tpdb"
+                    src={posters[2]}
                     alt=""
                     className="rounded-md"
                     width={300}
@@ -96,8 +96,8 @@ const ShowMoreCard = ({ url, posters }: ShowMoreCardProps) => {
               {posters[3] && (
                 <div className="">
                   <CachedImage
-                    type="tmdb"
-                    src={`https://image.tmdb.org/t/p/w300_and_h450_face${posters[3]}`}
+                    type="tpdb"
+                    src={posters[3]}
                     alt=""
                     className="rounded-md"
                     width={300}

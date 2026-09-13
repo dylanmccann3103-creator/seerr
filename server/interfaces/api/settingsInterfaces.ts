@@ -49,8 +49,6 @@ export interface PublicSettingsResponse {
   emailEnabled: boolean;
   newPlexLogin: boolean;
   youtubeUrl: string;
-  versionCheck: boolean;
-  plexClientIdentifier: string;
 }
 
 export interface CacheItem {
@@ -67,7 +65,7 @@ export interface CacheItem {
 
 export interface CacheResponse {
   apiCaches: CacheItem[];
-  imageCache: Record<'tmdb' | 'avatar', { size: number; imageCount: number }>;
+  imageCache: Record<'tpdb' | 'avatar', { size: number; imageCount: number }>;
   dnsCache: {
     stats: DnsStats | undefined;
     entries: DnsEntries | undefined;
@@ -77,7 +75,5 @@ export interface CacheResponse {
 export interface StatusResponse {
   version: string;
   commitTag: string;
-  updateAvailable?: boolean;
-  commitsBehind?: number;
   restartRequired: boolean;
 }

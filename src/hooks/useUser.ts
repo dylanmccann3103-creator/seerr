@@ -12,7 +12,6 @@ export type { PermissionCheckOptions };
 export interface User {
   id: number;
   warnings: string[];
-  plexUsername?: string | null;
   jellyfinUsername?: string | null;
   username?: string;
   displayName: string;
@@ -34,8 +33,6 @@ export interface UserSettings {
   originalLanguage?: string;
   locale?: string;
   notificationTypes: Partial<NotificationAgentTypes>;
-  watchlistSyncMovies?: boolean;
-  watchlistSyncTv?: boolean;
 }
 
 interface UserHookResponse {

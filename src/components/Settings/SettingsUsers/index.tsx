@@ -85,9 +85,7 @@ const SettingsUsers = () => {
         ? 'Jellyfin'
         : settings.currentSettings.mediaServerType === MediaServerType.EMBY
           ? 'Emby'
-          : settings.currentSettings.mediaServerType === MediaServerType.PLEX
-            ? 'Plex'
-            : undefined,
+          : undefined,
   };
 
   return (

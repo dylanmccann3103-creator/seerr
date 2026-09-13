@@ -58,7 +58,7 @@ const messages = defineMessages('components.Settings.SettingsNetwork', {
   dnsCacheForceMaxTtl: 'DNS Cache Maximum TTL',
   apiRequestTimeout: 'API Request Timeout',
   apiRequestTimeoutTip:
-    'Maximum time (in seconds) to wait for responses from external services like Radarr/Sonarr. Set to 0 for no timeout.',
+    'Maximum time (in seconds) to wait for responses from external services like Whisparr. Set to 0 for no timeout.',
   validationApiRequestTimeout: 'You must provide a valid timeout value',
 });
 
@@ -175,7 +175,7 @@ const SettingsNetwork = () => {
                 apiRequestTimeout: Number(values.apiRequestTimeout) * 1000,
               });
               mutate('/api/v1/settings/public');
-              mutate('/api/v1/status?checkUpdateAvailable=false');
+              mutate('/api/v1/status');
 
               addToast(intl.formatMessage(messages.toastSettingsSuccess), {
                 autoDismiss: true,

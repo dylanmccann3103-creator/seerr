@@ -741,12 +741,12 @@ const SettingsJobs = () => {
           </thead>
           <Table.TBody>
             <tr>
-              <Table.TD>The Movie Database (tmdb)</Table.TD>
+              <Table.TD>ThePornDB (tpdb)</Table.TD>
               <Table.TD>
-                {intl.formatNumber(cacheData?.imageCache.tmdb.imageCount ?? 0)}
+                {intl.formatNumber(cacheData?.imageCache.tpdb.imageCount ?? 0)}
               </Table.TD>
               <Table.TD>
-                {formatBytes(cacheData?.imageCache.tmdb.size ?? 0)}
+                {formatBytes(cacheData?.imageCache.tpdb.size ?? 0)}
               </Table.TD>
             </tr>
             <tr>

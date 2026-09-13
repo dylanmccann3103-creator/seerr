@@ -50,7 +50,6 @@ const messages = defineMessages('components.RequestList.RequestItem', {
   editrequest: 'Edit Request',
   deleterequest: 'Delete Request',
   cancelRequest: 'Cancel Request',
-  tmdbid: 'TMDB ID',
   tpdbid: 'TPDB ID',
   tvdbid: 'TheTVDB ID',
   unknowntitle: 'Unknown Title',
@@ -112,9 +111,7 @@ const RequestItemError = ({
             <>
               <div className="card-field">
                 <span className="card-field-name">
-                  {intl.formatMessage(
-                    requestData.media.tpdbId ? messages.tpdbid : messages.tmdbid
-                  )}
+                  {intl.formatMessage(messages.tpdbid)}
                 </span>
                 <span className="flex truncate text-sm text-gray-300">
                   {requestData.media.tpdbId ?? requestData.media.tmdbId}
@@ -701,12 +698,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
                     <TrashIcon />
                     <span>
                       {intl.formatMessage(messages.removearr, {
-                        arr:
-                          request.type === 'movie'
-                            ? 'Radarr'
-                            : request.type === 'tv'
-                              ? 'Sonarr'
-                              : 'Whisparr',
+                        arr: 'Whisparr',
                       })}
                     </span>
                   </ConfirmButton>

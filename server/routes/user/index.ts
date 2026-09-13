@@ -70,7 +70,7 @@ router.get('/', async (req, res, next) => {
 
     if (q) {
       query = query.where(
-        'LOWER(user.username) LIKE :q OR LOWER(user.email) LIKE :q OR LOWER(user.plexUsername) LIKE :q OR LOWER(user.jellyfinUsername) LIKE :q',
+        'LOWER(user.username) LIKE :q OR LOWER(user.email) LIKE :q OR LOWER(user.jellyfinUsername) LIKE :q',
         { q: `%${q}%` }
       );
     }
@@ -90,14 +90,10 @@ router.get('/', async (req, res, next) => {
         query = query
           .addSelect(
             `CASE WHEN (user.username IS NULL OR user.username = '') THEN (
-                CASE WHEN (user.plexUsername IS NULL OR user.plexUsername = '') THEN (
-                  CASE WHEN (user.jellyfinUsername IS NULL OR user.jellyfinUsername = '') THEN
-                    "user"."email"
-                  ELSE
-                    LOWER(user.jellyfinUsername)
-                  END)
+                CASE WHEN (user.jellyfinUsername IS NULL OR user.jellyfinUsername = '') THEN
+                  "user"."email"
                 ELSE
-                  LOWER(user.plexUsername)
+                  LOWER(user.jellyfinUsername)
                 END)
               ELSE
                 LOWER(user.username)
@@ -201,7 +197,6 @@ router.post(
         username: body.username,
         password: body.password,
         permissions: settings.main.defaultPermissions,
-        plexToken: '',
         userType: UserType.LOCAL,
       });
 

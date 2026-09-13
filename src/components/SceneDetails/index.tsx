@@ -259,7 +259,6 @@ const SceneDetails = ({ scene }: SceneDetailsProps) => {
             {data.performers.map((performer) => (
               <li key={`performer-${performer.id}`}>
                 <PersonCard
-                  type="performer"
                   personId={performer.id}
                   name={performer.name}
                   profilePath={performer.posterPath}

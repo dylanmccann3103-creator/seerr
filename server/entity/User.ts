@@ -42,12 +42,10 @@ export class User {
 
   static readonly filteredFields: string[] = [
     'email',
-    'plexId',
     'password',
     'resetPasswordGuid',
     'jellyfinDeviceId',
     'jellyfinAuthToken',
-    'plexToken',
     'settings',
   ];
 
@@ -66,9 +64,6 @@ export class User {
   public email: string;
 
   @Column({ type: 'varchar', nullable: true })
-  public plexUsername?: string | null;
-
-  @Column({ type: 'varchar', nullable: true })
   public jellyfinUsername?: string | null;
 
   @Column({ nullable: true })
@@ -83,11 +78,8 @@ export class User {
   @DbAwareColumn({ type: 'datetime', nullable: true })
   public recoveryLinkExpirationDate?: Date | null;
 
-  @Column({ type: 'integer', default: UserType.PLEX })
+  @Column({ type: 'integer', default: UserType.LOCAL })
   public userType: UserType;
-
-  @Column({ type: 'integer', nullable: true, select: true })
-  public plexId?: number | null;
 
   @Column({ type: 'varchar', nullable: true })
   public jellyfinUserId?: string | null;
@@ -97,9 +89,6 @@ export class User {
 
   @Column({ type: 'varchar', nullable: true, select: false })
   public jellyfinAuthToken?: string | null;
-
-  @Column({ type: 'varchar', nullable: true, select: false })
-  public plexToken?: string | null;
 
   @Column({ type: 'integer', default: 0 })
   public permissions = 0;
@@ -266,8 +255,7 @@ export class User {
 
   @AfterLoad()
   public setDisplayName(): void {
-    this.displayName =
-      this.username || this.plexUsername || this.jellyfinUsername || this.email;
+    this.displayName = this.username || this.jellyfinUsername || this.email;
   }
 
   public async getQuota(): Promise<QuotaResponse> {

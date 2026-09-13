@@ -660,7 +660,7 @@ authRoutes.post('/local', async (req, res, next) => {
   try {
     const user = await userRepository
       .createQueryBuilder('user')
-      .select(['user.id', 'user.email', 'user.password', 'user.plexId'])
+      .select(['user.id', 'user.email', 'user.password'])
       .where('user.email = :email', { email: body.email.toLowerCase() })
       .getOne();
 

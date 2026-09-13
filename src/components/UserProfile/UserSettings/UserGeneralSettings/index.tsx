@@ -35,7 +35,6 @@ const messages = defineMessages(
     saving: 'Saving…',
     mediaServerUser: '{mediaServerName} User',
     accounttype: 'Account Type',
-    plexuser: 'Plex User',
     localuser: 'Local User',
     role: 'Role',
     owner: 'Owner',
@@ -147,8 +146,7 @@ const UserGeneralSettings = () => {
           try {
             await axios.post(`/api/v1/user/${user?.id}/settings/main`, {
               username: values.displayName,
-              email:
-                values.email || user?.jellyfinUsername || user?.plexUsername,
+              email: values.email || user?.jellyfinUsername,
               locale: values.locale,
               movieQuotaLimit: movieQuotaEnabled
                 ? values.movieQuotaLimit
@@ -217,11 +215,7 @@ const UserGeneralSettings = () => {
                 </label>
                 <div className="mb-1 text-sm font-medium leading-5 text-gray-400 sm:mt-2">
                   <div className="flex max-w-lg items-center">
-                    {user?.userType === UserType.PLEX ? (
-                      <Badge badgeType="warning">
-                        {intl.formatMessage(messages.plexuser)}
-                      </Badge>
-                    ) : user?.userType === UserType.LOCAL ? (
+                    {user?.userType === UserType.LOCAL ? (
                       <Badge badgeType="default">
                         {intl.formatMessage(messages.localuser)}
                       </Badge>
@@ -265,11 +259,7 @@ const UserGeneralSettings = () => {
                       id="displayName"
                       name="displayName"
                       type="text"
-                      placeholder={
-                        user?.jellyfinUsername ||
-                        user?.plexUsername ||
-                        user?.email
-                      }
+                      placeholder={user?.jellyfinUsername || user?.email}
                     />
                   </div>
                   {errors.displayName &&
@@ -293,7 +283,6 @@ const UserGeneralSettings = () => {
                       name="email"
                       type="text"
                       placeholder="example@domain.com"
-                      disabled={user?.plexUsername}
                       className={
                         user?.warnings.find((w) => w === 'userEmailRequired')
                           ? 'border-2 border-red-400 focus:border-blue-600'

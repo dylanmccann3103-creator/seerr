@@ -55,7 +55,6 @@ const messages = defineMessages('components.UserList', {
   bulkedit: 'Bulk Edit',
   owner: 'Owner',
   admin: 'Admin',
-  plexuser: 'Plex User',
   deleteuser: 'Delete User',
   userdeleted: 'User deleted successfully!',
   userdeleteerror: 'Something went wrong while deleting the user.',
@@ -837,16 +836,10 @@ const UserList = () => {
                       className="text-base font-bold leading-5 transition duration-300 hover:underline"
                       data-testid="user-list-username-link"
                     >
-                      {user.username ||
-                        user.jellyfinUsername ||
-                        user.plexUsername ||
-                        user.email}
+                      {user.username || user.jellyfinUsername || user.email}
                     </Link>
-                    {(
-                      user.username ||
-                      user.jellyfinUsername ||
-                      user.plexUsername
-                    )?.toLowerCase() !== user.email && (
+                    {(user.username || user.jellyfinUsername)?.toLowerCase() !==
+                      user.email && (
                       <div className="text-sm leading-5 text-gray-300">
                         {user.email}
                       </div>
@@ -871,11 +864,7 @@ const UserList = () => {
                 )}
               </Table.TD>
               <Table.TD>
-                {user.userType === UserType.PLEX ? (
-                  <Badge badgeType="warning">
-                    {intl.formatMessage(messages.plexuser)}
-                  </Badge>
-                ) : user.userType === UserType.LOCAL ? (
+                {user.userType === UserType.LOCAL ? (
                   <Badge badgeType="default">
                     {intl.formatMessage(messages.localuser)}
                   </Badge>
