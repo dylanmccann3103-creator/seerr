@@ -1,6 +1,7 @@
 import Tpdb from '@server/api/tpdb';
 import { MediaType } from '@server/constants/media';
 import Media from '@server/entity/Media';
+import { hasSceneFilters, parseSceneFilters } from '@server/lib/sceneFilters';
 import { withStashPerformerImages } from '@server/lib/stashImages';
 import logger from '@server/logger';
 import { mapPerformerResult } from '@server/models/Performer';
@@ -15,13 +16,17 @@ const searchRoutes = Router();
 searchRoutes.get('/', async (req, res, next) => {
   const query = String(req.query.query ?? '');
   const page = Number(req.query.page) || 1;
+  const filters = parseSceneFilters(req.query);
+  // Tag/site/year/sort filters only apply to scenes, so sites and performers
+  // ride along only on an unfiltered first page.
+  const extras = page === 1 && !hasSceneFilters(filters);
   const tpdb = new Tpdb();
 
   try {
     const [scenes, sites, performers] = await Promise.all([
-      tpdb.searchScenes({ query, page }),
-      page === 1 ? tpdb.searchSites({ query }) : null,
-      page === 1 ? tpdb.searchPerformers({ query }) : null,
+      tpdb.searchScenes({ query, page, ...filters }),
+      extras ? tpdb.searchSites({ query }) : null,
+      extras ? tpdb.searchPerformers({ query }) : null,
     ]);
 
     const media = await Media.getRelatedTpdbMedia(req.user, [

@@ -1,7 +1,13 @@
-import Tpdb, { PERFORMER_ORDER_BY, SCENE_ORDER_BY } from '@server/api/tpdb';
+import Tpdb, { PERFORMER_ORDER_BY } from '@server/api/tpdb';
 import type { TpdbPaginationMeta } from '@server/api/tpdb/interfaces';
 import { MediaType } from '@server/constants/media';
 import Media from '@server/entity/Media';
+import {
+  letter,
+  oneOf,
+  parseSceneFilters,
+  str,
+} from '@server/lib/sceneFilters';
 import { withStashPerformerImages } from '@server/lib/stashImages';
 import logger from '@server/logger';
 import { mapPerformerResult } from '@server/models/Performer';
@@ -17,31 +23,12 @@ const tpdbPage = (meta: TpdbPaginationMeta) => ({
   totalResults: meta.total,
 });
 
-// Query params come straight from the URL; anything unknown is dropped.
-const str = (v: unknown): string | undefined =>
-  typeof v === 'string' && v.length > 0 ? v : undefined;
-const oneOf = <T extends string>(
-  v: unknown,
-  allowed: readonly T[]
-): T | undefined => (allowed.includes(v as T) ? (v as T) : undefined);
-const int = (v: unknown): number | undefined =>
-  Number.isInteger(Number(v)) && Number(v) > 0 ? Number(v) : undefined;
-const letter = (v: unknown): string | undefined =>
-  typeof v === 'string' && /^[a-z]$/i.test(v) ? v.toLowerCase() : undefined;
-
 // Newest scenes by default; tags/siteId/year/orderBy narrow it down.
 discoverRoutes.get('/scenes', async (req, res, next) => {
   try {
     const results = await new Tpdb().getRecentScenes({
       page: Number(req.query.page) || 1,
-      tags: (str(req.query.tags) ?? '')
-        .split(',')
-        .map(int)
-        .filter((id): id is number => id !== undefined),
-      tagAnd: req.query.tagAnd === 'true' || req.query.tagAnd === '1',
-      siteId: int(req.query.siteId),
-      year: int(req.query.year),
-      orderBy: oneOf(req.query.orderBy, SCENE_ORDER_BY),
+      ...parseSceneFilters(req.query),
     });
     const media = await Media.getRelatedTpdbMedia(
       req.user,

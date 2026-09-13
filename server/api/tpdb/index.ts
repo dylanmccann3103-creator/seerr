@@ -50,6 +50,26 @@ export interface PerformerListOptions extends PageOptions {
   letter?: string;
 }
 
+// TPDB wants `tags[<id>]=<anything>` (Laravel deepObject; the value is ignored).
+const sceneParams = ({
+  page = 1,
+  tags,
+  tagAnd,
+  siteId,
+  year,
+  orderBy,
+}: SceneListOptions): Record<string, string | number> => {
+  const params: Record<string, string | number> = { page };
+  for (const id of tags ?? []) {
+    params[`tags[${id}]`] = 1;
+  }
+  if (tagAnd && (tags?.length ?? 0) > 1) params.tag_and = 1;
+  if (siteId) params.site_id = siteId;
+  if (year) params.year = year;
+  if (orderBy) params.orderBy = orderBy;
+  return params;
+};
+
 interface PageOptions {
   page?: number;
 }
@@ -99,12 +119,15 @@ class Tpdb extends ExternalAPI {
     );
   }
 
+  // Text search and the discover filters combine freely on /scenes.
   public searchScenes = async ({
     query,
-    page = 1,
-  }: SearchOptions): Promise<TpdbPaginatedResponse<TpdbScene>> => {
+    ...options
+  }: SearchOptions & SceneListOptions): Promise<
+    TpdbPaginatedResponse<TpdbScene>
+  > => {
     return this.get<TpdbPaginatedResponse<TpdbScene>>('/scenes', {
-      params: { q: query, page },
+      params: { q: query, ...sceneParams(options) },
     });
   };
 
@@ -170,15 +193,9 @@ class Tpdb extends ExternalAPI {
     year,
     orderBy,
   }: SceneListOptions = {}): Promise<TpdbPaginatedResponse<TpdbScene>> => {
-    const params: Record<string, string | number> = { page };
-    for (const id of tags ?? []) {
-      params[`tags[${id}]`] = 1;
-    }
-    if (tagAnd && (tags?.length ?? 0) > 1) params.tag_and = 1;
-    if (siteId) params.site_id = siteId;
-    if (year) params.year = year;
-    if (orderBy) params.orderBy = orderBy;
-    return this.get<TpdbPaginatedResponse<TpdbScene>>('/scenes', { params });
+    return this.get<TpdbPaginatedResponse<TpdbScene>>('/scenes', {
+      params: sceneParams({ page, tags, tagAnd, siteId, year, orderBy }),
+    });
   };
 
   // /sites only supports `q` and `letter`; the default order is alphabetical.

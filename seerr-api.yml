@@ -3257,6 +3257,30 @@ paths:
             type: number
             example: 1
             default: 1
+        - in: query
+          name: tags
+          schema:
+            type: string
+          description: Comma-separated TPDB tag ids
+        - in: query
+          name: tagAnd
+          schema:
+            type: string
+            enum: ["true", "false", "1", "0"]
+          description: Require every tag instead of any
+        - in: query
+          name: siteId
+          schema:
+            type: number
+        - in: query
+          name: year
+          schema:
+            type: number
+        - in: query
+          name: orderBy
+          schema:
+            type: string
+            enum: [most_relevant, recently_released, former_released, recently_created, recently_updated, duration_desc, duration_asc]
       responses:
         '200':
           description: Results
