@@ -1,11 +1,13 @@
+# Production example. For local development use compose.dev.yaml.
 services:
   seerr:
-    build:
-      context: .
-      dockerfile: Dockerfile.local
+    build: .
     ports:
-      - 5055:5055
+      - 5056:5055
+    env_file:
+      - .env
+    environment:
+      - TZ=Europe/Amsterdam
     volumes:
-      - .:/app:rw,cached
-      - /app/node_modules
-      - /app/.next
+      - ./config:/app/config
+    restart: unless-stopped

@@ -1,47 +1,40 @@
 # PROGRESS.md
 
-## In progress (phase C)
+## Status (2026-09-13)
 
-- **C1 done, reviewed & accepted** — WhisparrAPI (commit `580e2ec6`): sonarr
-  port, calendar-year seasons, no language profiles (asserted in tests),
-  episode↔TPDB-scene-id field left TODO pending live access. 18 tests.
-- **C2 done, reviewed & accepted** — StashAPI GraphQL client (same commit),
-  filter shapes verified against public stashapp schema. 9 tests.
-- **C3 done, reviewed & accepted** (`9b55c870`) — settings backend + routes
-  + OpenAPI entries; searchOnRequest default OFF (ponytail-commented).
-- **C6 done, reviewed & accepted** (`a4686a2e`) — SettingsWhisparr on the
-  services page, Stash tab + path-mapping editor, 57 i18n keys.
-- **Blocker lifted 2026-09-12** — .env complete (WHISPARR_API_KEY,
-  STASH_URL=http://192.168.6.2:30198, STASH_API_KEY). Live: Whisparr
-  2.2.0.231 OK, Stash v0.31.1 OK.
-- **Episode↔TPDB id VERIFIED**: Whisparr `/episode` carries `tvdbId` =
-  TPDB scene numeric `_id` (5241456 ↔ "Brazzers Live 1: The Beginning",
-  cross-checked on `/scenes/5241456`). Episodes use `releaseDate`, not
-  airDate; `actors[].tpdbId` present. Phase D scene dispatch unblocked.
-- **Stash tier-2**: ThePornDB is configured as stash-box endpoint, but
-  library is empty (0 scenes, only builtin_autotag scraper). Tier 1 path
-  match leads; tier 2 verifiable once scenes exist.
-- **C4+C5 done** — one `whisparr-scan` job (`server/lib/scanners/whisparr/`)
-  is the single writer for SITE/SCENE media: sites → SITE rows + year
-  seasons (monitored/no file → PROCESSING), file-bearing episodes → SCENE
-  rows (tpdbId = Whisparr episode `tvdbId`, `tmdbId = 0` placeholder,
-  `externalServiceId` = episode id), orphan cleanup + request decline.
-  Availability is library-driven (D3): `server/lib/scanners/library.ts`
-  maps Whisparr file paths through per-library prefix tables and asks
-  Stash (`findSceneByPath`) / Jellyfin (preloaded `getLibraryPaths`) —
-  AVAILABLE only when a library has the file. 4 tests. Live-run against
-  Whisparr+Stash: Brazzers → PROCESSING, 11 year-seasons, 0 scenes (no
-  files yet).
-  Deviations from PLAN: (1) no separate Stash job and no rewrite of the
-  old Jellyfin scanner — both libraries are lookups inside the Whisparr
-  scan (only Whisparr can map path→scene id); old jellyfin/sonarr scanners
-  + jobs stay until F1. (2) `JellyfinSettings.pathMappings` added backend-
-  only (default `[]`), needs a C6-style editor in the Jellyfin settings UI.
-  (3) Stash tier-2 (stash_id) not wired: Whisparr only exposes numeric
-  `_id`, no uuid. Unverified: `episodeFile.path` shape (Sonarr v3 assumed,
-  test instance has no files).
-- Whisparr test instance holds 1 site (Brazzers, tvdbId 92, 277 episodes,
-  0 files) — pre-existing, not ours.
+All phases A–G of PLAN.md are done. Gate on the final tree: typecheck server+client
+clean, lint 0 errors, 134/134 tests, `seerr-api.yml` parses with no dangling refs.
+
+## Done (phase G)
+
+- **G1 telemetry sweep** — `server/api/github.ts` deleted; `/status` returns
+  version/commitTag/restartRequired only; `versionCheck` setting, Releases panel and
+  update badges gone; `scarfSettings` dropped from package.json; the proxy
+  connectivity check HEADs api.theporndb.net instead of google.com. Kept:
+  notification agents, the email "public logo" option (fetched by the recipient's
+  mail client, not the server), Jellyfin/Stash/Whisparr/TPDB.
+- **G2 Docker** — `compose.yaml` is the production example (port 5056, `./config`
+  volume, `.env`); the old dev compose moved to `compose.dev.yaml`; `.env.example`
+  added. Dockerfile already had no Postgres.
+- **G3 docs** — README rewritten (setup, env vars, Stash/Jellyfin modes, fresh-DB
+  note); CLAUDE.md rewritten for the new tree.
+
+## Done (phase F)
+
+- **F1 removal sweep** (`132772f5`, `37a8844b`, `a0768298`) — TMDB/TVDB/Plex/
+  Tautulli/Radarr/Sonarr clients, scanners, routes, models, settings UI, movie/tv
+  pages and components deleted. Plex user columns dropped (`user` table rebuilt,
+  userType default LOCAL), watchlist sync flags dropped, `UserType.PLEX`,
+  `MediaServerType.PLEX` and the AUTO_REQUEST permissions removed. Overseerr merge
+  on startup removed (fresh DB only). Cache manager keeps `tpdb`/`whisparr`; image
+  proxy keeps tpdb only; `CachedImage` is `avatar|tpdb`.
+- **4K removed everywhere** — `status4k`, `*4k` service columns, Plex rating keys,
+  `is4k`, 4K permissions/settings/UI/messages (migration
+  `1789500000001-Remove4kColumns`).
+- **F2** — `seerr-api.yml` 5620 → 4179 lines, only live routes/schemas; en.json
+  re-extracted, ~27k dead keys pruned from the other 40 locales.
+- Grep-verified: no `tmdb|radarr|sonarr|plex|tautulli` identifiers left outside
+  comments, migrations and Jellyfin's own `ProviderIds.Tmdb` field.
 
 ## Done (phase E)
 
@@ -156,25 +149,63 @@
   uniqueness index in same migration, performers browse-only, serverId:0
   regression test, OpenAPI enum sweep, single whisparrServiceId on OverrideRule.
 
-## Next
+## Done (phase C)
 
-- Phase F (removal sweep: TMDB/Radarr/Sonarr/Plex/movie/tv code)
-- Browser walkthrough of the new pages against live TPDB/Whisparr (needs a
-  configured dev instance: settings.json + Jellyfin auth)
-- Live connection tests of C3/C6 settings pages against real instances
-- Jellyfin pathMappings editor in settings UI (C6 follow-up)
+- **C1 done, reviewed & accepted** — WhisparrAPI (commit `580e2ec6`): sonarr
+  port, calendar-year seasons, no language profiles (asserted in tests),
+  episode↔TPDB-scene-id field left TODO pending live access. 18 tests.
+- **C2 done, reviewed & accepted** — StashAPI GraphQL client (same commit),
+  filter shapes verified against public stashapp schema. 9 tests.
+- **C3 done, reviewed & accepted** (`9b55c870`) — settings backend + routes
+  + OpenAPI entries; searchOnRequest default OFF (ponytail-commented).
+- **C6 done, reviewed & accepted** (`a4686a2e`) — SettingsWhisparr on the
+  services page, Stash tab + path-mapping editor, 57 i18n keys.
+- **Blocker lifted 2026-09-12** — .env complete (WHISPARR_API_KEY,
+  STASH_URL=http://192.168.6.2:30198, STASH_API_KEY). Live: Whisparr
+  2.2.0.231 OK, Stash v0.31.1 OK.
+- **Episode↔TPDB id VERIFIED**: Whisparr `/episode` carries `tvdbId` =
+  TPDB scene numeric `_id` (5241456 ↔ "Brazzers Live 1: The Beginning",
+  cross-checked on `/scenes/5241456`). Episodes use `releaseDate`, not
+  airDate; `actors[].tpdbId` present. Phase D scene dispatch unblocked.
+- **Stash tier-2**: ThePornDB is configured as stash-box endpoint, but
+  library is empty (0 scenes, only builtin_autotag scraper). Tier 1 path
+  match leads; tier 2 verifiable once scenes exist.
+- **C4+C5 done** — one `whisparr-scan` job (`server/lib/scanners/whisparr/`)
+  is the single writer for SITE/SCENE media: sites → SITE rows + year
+  seasons (monitored/no file → PROCESSING), file-bearing episodes → SCENE
+  rows (tpdbId = Whisparr episode `tvdbId`, `tmdbId = 0` placeholder,
+  `externalServiceId` = episode id), orphan cleanup + request decline.
+  Availability is library-driven (D3): `server/lib/scanners/library.ts`
+  maps Whisparr file paths through per-library prefix tables and asks
+  Stash (`findSceneByPath`) / Jellyfin (preloaded `getLibraryPaths`) —
+  AVAILABLE only when a library has the file. 4 tests. Live-run against
+  Whisparr+Stash: Brazzers → PROCESSING, 11 year-seasons, 0 scenes (no
+  files yet).
+  Deviations from PLAN: (1) no separate Stash job and no rewrite of the
+  old Jellyfin scanner — both libraries are lookups inside the Whisparr
+  scan (only Whisparr can map path→scene id); old jellyfin/sonarr scanners
+  + jobs stay until F1. (2) `JellyfinSettings.pathMappings` added backend-
+  only (default `[]`), needs a C6-style editor in the Jellyfin settings UI.
+  (3) Stash tier-2 (stash_id) not wired: Whisparr only exposes numeric
+  `_id`, no uuid. Unverified: `episodeFile.path` shape (Sonarr v3 assumed,
+  test instance has no files).
+- Whisparr test instance holds 1 site (Brazzers, tvdbId 92, 277 episodes,
+  0 files) — pre-existing, not ours.
 
-## Open issues
+## Open issues / leftovers
 
-- **DoD 2 deviation — "popular sites":** TPDB's public API has no working
-  sort/order params (verified live; invalid values silently accepted). Recent
-  scenes works (default order = newest first); sites can only be listed in
-  default (alphabetical) order. Options: ship "Sites" slider as-is, or derive
-  popularity locally from request counts later. Proceeding with default order
-  unless directed otherwise.
-
-- ~~Per-episode TPDB scene-id location~~ resolved 2026-09-12 (see phase C).
-- ~~Stash instance details~~ resolved; TPDB scraping unverifiable on empty library.
+- **Dead tables kept**: `blocklist`, `watchlist`, `override_rule` (entities exist, no
+  routes). `MediaType` still declares `movie`/`tv` because the seasonal/single-item
+  helpers and the quota columns key off them. Removing either is a schema change;
+  deferred.
+- `newPlexLogin` (settings + UI) is still the name of the "allow new Jellyfin
+  sign-ins" flag. Functional, just misnamed.
+- `docs/` (Docusaurus) and `.github/workflows` are untouched upstream content.
+- Edit mode on pending scene/site requests = approve/cancel only (PUT /request/:id
+  has no scene/site branch).
+- Jellyfin `pathMappings` has no settings-UI editor (backend only).
+- No browser walkthrough of the new pages against live TPDB/Whisparr yet.
+- **"Popular sites"**: TPDB has no sort params; the sites list is in default order.
 
 ## Test data added to Whisparr
 

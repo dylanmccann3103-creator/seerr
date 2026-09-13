@@ -1,77 +1,83 @@
 <p align="center">
 <img src="./public/logo_full.svg" alt="Seerr" style="margin: 20px 0;">
 </p>
-<p align="center">
-<img src="https://github.com/seerr-team/seerr/actions/workflows/release.yml/badge.svg" alt="Seerr Release" />
-<img src="https://github.com/seerr-team/seerr/actions/workflows/ci.yml/badge.svg" alt="Seerr CI">
-</p>
-<p align="center">
-<a href="https://discord.gg/seerr"><img src="https://img.shields.io/discord/783137440809746482" alt="Discord"></a>
-<a href="https://hub.docker.com/r/seerr/seerr"><img src="https://img.shields.io/docker/pulls/seerr/seerr" alt="Docker pulls"></a>
-<a href="https://translate.seerr.dev/engage/seerr/"><img src="https://translate.seerr.dev/widget/seerr/svg-badge.svg" alt="Translation status" /></a>
-<a href="https://github.com/seerr-team/seerr/blob/develop/LICENSE"><img alt="GitHub" src="https://img.shields.io/github/license/seerr-team/seerr"></a>
 
-**Seerr** is a free and open source software application for managing requests for your media library. It integrates with the media server of your choice: [Jellyfin](https://jellyfin.org), [Plex](https://plex.tv), and [Emby](https://emby.media/). In addition, it integrates with your existing services, such as **[Sonarr](https://sonarr.tv/)**, **[Radarr](https://radarr.video/)**.
+**Seerr for Whisparr** is a request manager for adult content, forked from
+[Seerr](https://github.com/seerr-team/seerr). Users browse scenes, sites and
+performers from [ThePornDB](https://theporndb.net), request them, and the
+request is sent to a single [Whisparr v2](https://whisparr.com) instance.
+Availability is read back from your library through
+[Stash](https://stashapp.cc) and/or [Jellyfin](https://jellyfin.org).
 
-## Current Features
+Everything movie/TV/Plex/Radarr/Sonarr/TMDB related from upstream Seerr has
+been removed. The app makes no calls to GitHub or any telemetry endpoint; the
+only outbound traffic is to ThePornDB, your Whisparr, Stash and Jellyfin, and
+the notification agents you configure.
 
-- Full Jellyfin/Emby/Plex integration including authentication with user import & management.
-- Support for **PostgreSQL** and **SQLite** databases.
-- Supports Movies, Shows and Mixed Libraries.
-- Ability to change email addresses for SMTP purposes.
-- Easy integration with your existing services. Currently, Seerr supports Sonarr and Radarr. More to come!
-- Jellyfin/Emby/Plex library scan, to keep track of the titles which are already available.
-- Customizable request system, which allows users to request individual seasons or movies in a friendly, easy-to-use interface.
-- Incredibly simple request management UI. Don't dig through the app to simply approve recent requests!
-- Granular permission system.
-- Support for various notification agents.
-- Mobile-friendly design, for when you need to approve requests on the go!
-- Support for watchlisting & blocklisting media.
+## Features
 
-With more features on the way! Check out our [issue tracker](/../../issues) to see the features which have already been requested.
+- Discover and search scenes, sites and performers (ThePornDB).
+- Request a single scene or whole years of a site; requests are dispatched to
+  Whisparr exactly once and failures are shown with a reason and can be retried.
+- Library scan via Whisparr, with availability confirmed against Stash
+  (path match) and/or Jellyfin.
+- Jellyfin or local accounts, permissions, quotas, issues, notifications
+  (Discord, email, Telegram, Pushover, Pushbullet, Gotify, ntfy, Slack,
+  webhook, web push).
+- Local image cache for all ThePornDB artwork.
 
-## Getting Started
+## Getting started
 
-Check out our documentation for instructions on how to install and run Seerr:
+Requirements: Whisparr v2, a ThePornDB API key, and Stash and/or Jellyfin.
+Storage is **SQLite only**. This fork needs a **fresh database**: do not point
+it at an existing Seerr/Overseerr/Jellyseerr `config` directory.
 
-https://docs.seerr.dev/getting-started/
+### Docker
 
-## Preview
+```sh
+cp .env.example .env      # fill in TPDB_API_KEY
+docker compose up -d      # http://localhost:5056
+```
 
-<img src="./public/preview.jpg" alt="Seerr application preview" />
+`compose.yaml` builds the image, publishes port 5056, mounts `./config` for
+the database, settings and image cache, and reads `.env`.
 
-## Migrating from Overseerr/Jellyseerr to Seerr
+### Environment variables
 
-Read our [release announcement](https://docs.seerr.dev/blog/seerr-release) to learn what Seerr means for Jellyseerr and Overseerr users.
+| Variable | Purpose |
+|---|---|
+| `TPDB_API_KEY` | ThePornDB API key. Optional if set in Settings → Services. |
+| `PORT` | Listen port inside the container (default 5055). |
+| `HOST` | Bind address (default all interfaces). |
+| `CONFIG_DIRECTORY` | Config/database directory (default `config`). |
+| `TZ` | Time zone used for logs and scheduled jobs. |
+| `LOG_LEVEL` | `debug`, `info` (default), `warn`, `error`. |
 
-Please follow our [migration guide](https://docs.seerr.dev/migration-guide) for detailed instructions on migrating from Overseerr or Jellyseerr.
+### First run
 
-## Support
+1. Open the app and finish the setup wizard: create the admin account (Jellyfin
+   sign-in or a local account) and, if you use Jellyfin, pick the libraries to
+   scan.
+2. Settings → Services: enter the Whisparr connection, quality profile and root
+   folder; enable Stash and add path mappings if Whisparr and Stash see the
+   library under different paths; set the ThePornDB key if not in `.env`.
+3. Settings → Jobs: run the Whisparr scan once to import what the library
+   already has.
 
-- Check out the [Seerr Documentation](https://docs.seerr.dev) before asking for help. Your question might already be in the docs!
-- You can get support on [Discord](https://discord.gg/seerr).
-- You can ask questions in the Help category of our [GitHub Discussions](/../../discussions).
-- Bug reports and feature requests can be submitted via [GitHub Issues](/../../issues).
+Modes: Stash only, Jellyfin only, or both. A scene becomes *available* only
+when a configured library reports the file.
 
-## API Documentation
+## Development
 
-You can access the API documentation from your local Seerr install at http://localhost:5055/api-docs
+```sh
+pnpm install
+pnpm dev                 # http://localhost:5055
+pnpm typecheck && pnpm lint && pnpm test
+```
 
-## Community
+`compose.dev.yaml` runs the same in a container. See `CLAUDE.md` for a map of
+the codebase and `PLAN.md` / `PROGRESS.md` for how the fork was built.
 
-You can ask questions, share ideas, and more in [GitHub Discussions](/../../discussions).
+## License
 
-If you would like to chat with other members of our growing community, [join the Seerr Discord server](https://discord.gg/seerr)!
-
-Our [Code of Conduct](./CODE_OF_CONDUCT.md) applies to all Seerr community channels.
-
-## Contributing
-
-You can help improve Seerr too! Check out our [Contribution Guide](./CONTRIBUTING.md) to get started.
-
-## Contributors ✨
-
-[![Contributors](https://opencollective.com/seerr/contributors.svg?width=890)](https://opencollective.com/seerr/#backers)
-
-[![Become a Backer](https://opencollective.com/seerr/backers.svg)](https://opencollective.com/seerr/#backers)
-[![Become a Sponsor](https://opencollective.com/seerr/sponsors.svg)](https://opencollective.com/seerr/#sponsors)
+Same as upstream Seerr, see [LICENSE](./LICENSE).
