@@ -224,7 +224,7 @@ const SettingsWhisparr = () => {
           activeProfileId: data?.activeProfileId || undefined,
           rootFolder: data?.activeDirectory ?? '',
           monitorNewItems: data?.monitorNewItems ?? 'none',
-          searchOnRequest: data?.searchOnRequest ?? false,
+          searchOnRequest: data?.searchOnRequest ?? true,
           tagRequests: data?.tagRequests ?? false,
         }}
         enableReinitialize

@@ -88,9 +88,8 @@ export interface WhisparrSettings {
   activeProfileName: string;
   activeDirectory: string;
   monitorNewItems: 'all' | 'none';
-  // ponytail: project constraint — no real downloads while this fork is under
-  // development, so this always defaults to false regardless of upstream
-  // Whisparr behavior. Flip the default once search dispatch is verified.
+  // Approved request -> EpisodeSearch in Whisparr (like upstream's
+  // searchForMissingEpisodes). Default on since the live dispatch was verified.
   searchOnRequest: boolean;
   externalUrl?: string;
   tagRequests: boolean;
@@ -448,7 +447,7 @@ class Settings {
         activeDirectory: '',
         monitorNewItems: 'none',
         // ponytail: no real downloads during development, see WhisparrSettings.
-        searchOnRequest: false,
+        searchOnRequest: true,
         tagRequests: false,
       },
       stash: {
