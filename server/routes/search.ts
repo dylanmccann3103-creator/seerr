@@ -1,6 +1,7 @@
 import Tpdb from '@server/api/tpdb';
 import { MediaType } from '@server/constants/media';
 import Media from '@server/entity/Media';
+import { withStashPerformerImages } from '@server/lib/stashImages';
 import logger from '@server/logger';
 import { mapPerformerResult } from '@server/models/Performer';
 import { mapSceneResult } from '@server/models/Scene';
@@ -47,7 +48,10 @@ searchRoutes.get('/', async (req, res, next) => {
         ...(sites?.data ?? []).map((site) =>
           mapSiteResult(site, find(String(site.id), MediaType.SITE))
         ),
-        ...(performers?.data ?? []).map(mapPerformerResult),
+        ...(await withStashPerformerImages(
+          performers?.data ?? [],
+          (performers?.data ?? []).map(mapPerformerResult)
+        )),
         ...scenes.data.map((scene) =>
           mapSceneResult(scene, find(String(scene._id), MediaType.SCENE))
         ),

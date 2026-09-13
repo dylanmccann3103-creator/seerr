@@ -1,6 +1,6 @@
 import { LRUCache } from 'lru-cache';
 
-export type AvailableCacheIds = 'tpdb' | 'whisparr';
+export type AvailableCacheIds = 'tpdb' | 'whisparr' | 'stash';
 
 const DEFAULT_TTL = 300;
 
@@ -13,6 +13,9 @@ const TPDB_MAX_KEYS = 1000;
 
 // Rolling quality profile / root folder lookups, a few keys per server.
 const WHISPARR_MAX_KEYS = 64;
+
+// One key per performer whose image was looked up in Stash (hits and misses).
+const STASH_MAX_KEYS = 2000;
 
 export interface CacheStats {
   hits: number;
@@ -188,6 +191,10 @@ class CacheManager {
     }),
     whisparr: new Cache('whisparr', 'Whisparr API', {
       max: WHISPARR_MAX_KEYS,
+    }),
+    stash: new Cache('stash', 'Stash', {
+      stdTtl: 21600,
+      max: STASH_MAX_KEYS,
     }),
   };
 

@@ -74,6 +74,7 @@ export interface TagRef {
 // Query-string shape sent to /api/v1/discover/scenes.
 export interface SceneFilterOptions {
   tags?: string; // comma-separated ids for the API
+  tagAnd?: string; // '1' = scene must carry every tag
   siteId?: string;
   year?: string;
   orderBy?: string;
@@ -110,6 +111,7 @@ export const prepareSceneFilters = (
   const tags = parseTagParam(first(query.tags));
   const api: SceneFilterOptions = {};
   if (tags.length) api.tags = tags.map((t) => t.id).join(',');
+  if (tags.length > 1 && first(query.tagAnd) === '1') api.tagAnd = '1';
   const siteId = first(query.siteId);
   if (siteId) api.siteId = siteId;
   const year = first(query.year);
@@ -141,4 +143,6 @@ export const preparePerformerFilters = (
 export const countActiveFilters = (
   filters: SceneFilterOptions | PerformerFilterOptions
 ): number =>
-  Object.entries(filters).filter(([k, v]) => k !== 'orderBy' && v).length;
+  Object.entries(filters).filter(
+    ([k, v]) => k !== 'orderBy' && k !== 'tagAnd' && v
+  ).length;

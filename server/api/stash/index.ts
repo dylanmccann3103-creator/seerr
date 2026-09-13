@@ -1,7 +1,9 @@
 import ExternalAPI from '@server/api/externalapi';
 import type {
+  StashFindPerformersResult,
   StashFindScenesResult,
   StashGraphQLResponse,
+  StashPerformer,
   StashScene,
   StashStats,
   StashSystemStatus,
@@ -33,6 +35,17 @@ const SCENE_FIELDS = `
   files {
     path
   }
+  stash_ids {
+    endpoint
+    stash_id
+  }
+`;
+
+const PERFORMER_FIELDS = `
+  id
+  name
+  alias_list
+  image_path
   stash_ids {
     endpoint
     stash_id
@@ -141,6 +154,49 @@ class StashAPI extends ExternalAPI {
       { stashId }
     );
     return data.findScenes.scenes;
+  };
+
+  // Performers scraped from TPDB carry the TPDB uuid as a stash_id, so this is
+  // an exact match; `searchPerformers` is the fallback when it is not there.
+  public findPerformersByStashId = async (
+    stashId: string
+  ): Promise<StashPerformer[]> => {
+    const data = await this.graphql<{
+      findPerformers: StashFindPerformersResult;
+    }>(
+      `query FindPerformersByStashId($stashId: String!) {
+        findPerformers(
+          performer_filter: {
+            stash_id_endpoint: { stash_id: $stashId, modifier: EQUALS }
+          }
+          filter: { per_page: 5 }
+        ) {
+          count
+          performers {
+            ${PERFORMER_FIELDS}
+          }
+        }
+      }`,
+      { stashId }
+    );
+    return data.findPerformers.performers;
+  };
+
+  public searchPerformers = async (q: string): Promise<StashPerformer[]> => {
+    const data = await this.graphql<{
+      findPerformers: StashFindPerformersResult;
+    }>(
+      `query SearchPerformers($q: String!) {
+        findPerformers(filter: { q: $q, per_page: 5 }) {
+          count
+          performers {
+            ${PERFORMER_FIELDS}
+          }
+        }
+      }`,
+      { q }
+    );
+    return data.findPerformers.performers;
   };
 
   // Deep link for "Play in Stash" buttons in the request UI.

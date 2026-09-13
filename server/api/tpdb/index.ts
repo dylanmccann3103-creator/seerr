@@ -34,6 +34,8 @@ export type PerformerOrderBy = (typeof PERFORMER_ORDER_BY)[number];
 
 export interface SceneListOptions extends PageOptions {
   tags?: number[];
+  // true = scene must carry every tag (TPDB `tag_and`); default is any tag.
+  tagAnd?: boolean;
   siteId?: number;
   year?: number;
   orderBy?: SceneOrderBy;
@@ -163,6 +165,7 @@ class Tpdb extends ExternalAPI {
   public getRecentScenes = async ({
     page = 1,
     tags,
+    tagAnd,
     siteId,
     year,
     orderBy,
@@ -171,6 +174,7 @@ class Tpdb extends ExternalAPI {
     for (const id of tags ?? []) {
       params[`tags[${id}]`] = 1;
     }
+    if (tagAnd && (tags?.length ?? 0) > 1) params.tag_and = 1;
     if (siteId) params.site_id = siteId;
     if (year) params.year = year;
     if (orderBy) params.orderBy = orderBy;

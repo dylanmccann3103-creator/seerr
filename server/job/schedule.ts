@@ -78,6 +78,7 @@ export const startJobs = (): void => {
         label: 'Jobs',
       });
       ImageProxy.clearCache('tpdb');
+      ImageProxy.clearCache('stash');
 
       // Clean users avatar image cache
       ImageProxy.clearCache('avatar');

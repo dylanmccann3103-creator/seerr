@@ -61,3 +61,16 @@ export interface StashGraphQLResponse<T> {
   data?: T;
   errors?: StashGraphQLError[];
 }
+
+export interface StashPerformer {
+  id: string;
+  name: string;
+  alias_list: string[];
+  image_path: string | null;
+  stash_ids: { endpoint: string; stash_id: string }[];
+}
+
+export interface StashFindPerformersResult {
+  count: number;
+  performers: StashPerformer[];
+}

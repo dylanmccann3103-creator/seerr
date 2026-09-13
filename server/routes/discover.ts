@@ -2,6 +2,7 @@ import Tpdb, { PERFORMER_ORDER_BY, SCENE_ORDER_BY } from '@server/api/tpdb';
 import type { TpdbPaginationMeta } from '@server/api/tpdb/interfaces';
 import { MediaType } from '@server/constants/media';
 import Media from '@server/entity/Media';
+import { withStashPerformerImages } from '@server/lib/stashImages';
 import logger from '@server/logger';
 import { mapPerformerResult } from '@server/models/Performer';
 import { mapSceneResult } from '@server/models/Scene';
@@ -37,6 +38,7 @@ discoverRoutes.get('/scenes', async (req, res, next) => {
         .split(',')
         .map(int)
         .filter((id): id is number => id !== undefined),
+      tagAnd: req.query.tagAnd === 'true' || req.query.tagAnd === '1',
       siteId: int(req.query.siteId),
       year: int(req.query.year),
       orderBy: oneOf(req.query.orderBy, SCENE_ORDER_BY),
@@ -112,7 +114,10 @@ discoverRoutes.get('/performers', async (req, res, next) => {
     });
     return res.status(200).json({
       ...tpdbPage(results.meta),
-      results: results.data.map(mapPerformerResult),
+      results: await withStashPerformerImages(
+        results.data,
+        results.data.map(mapPerformerResult)
+      ),
     });
   } catch (e) {
     logger.debug('Something went wrong retrieving performers', {

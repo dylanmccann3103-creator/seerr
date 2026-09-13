@@ -25,6 +25,7 @@ const messages = defineMessages('components.Discover.SceneFilterSlideover', {
   site: 'Site',
   searchSites: 'Search sites…',
   year: 'Year',
+  matchalltags: 'Only scenes with all selected tags',
   starttyping: 'Start typing to search.',
   nooptions: 'No results.',
   clearfilters: 'Clear Active Filters',
@@ -105,6 +106,20 @@ const SceneFilterSlideover = ({
             })
           }
         />
+        {tags.length > 1 && (
+          <label className="flex items-center space-x-2 text-sm text-gray-300">
+            <input
+              type="checkbox"
+              checked={currentFilters.tagAnd === '1'}
+              onChange={(e) =>
+                batchUpdateQueryParams({
+                  tagAnd: e.target.checked ? '1' : undefined,
+                })
+              }
+            />
+            <span>{intl.formatMessage(messages.matchalltags)}</span>
+          </label>
+        )}
         <span className="text-lg font-semibold">
           {intl.formatMessage(messages.site)}
         </span>
@@ -148,6 +163,7 @@ const SceneFilterSlideover = ({
             onClick={() => {
               batchUpdateQueryParams({
                 tags: undefined,
+                tagAnd: undefined,
                 siteId: undefined,
                 siteName: undefined,
                 year: undefined,

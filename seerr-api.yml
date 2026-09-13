@@ -3297,6 +3297,12 @@ paths:
             type: string
           description: Comma-separated TPDB tag ids
         - in: query
+          name: tagAnd
+          schema:
+            type: string
+            enum: ["true", "false", "1", "0"]
+          description: Require every tag instead of any
+        - in: query
           name: siteId
           schema:
             type: number

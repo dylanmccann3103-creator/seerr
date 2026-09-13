@@ -69,6 +69,27 @@ Noted, not fixed:
   (in-view sentinel re-fired every render) → now uses `useVerticalScroll` like
   ListView; empty-string `query` params were rejected by the validator → omitted.
 
+### Follow-up (2026-09-13, third pass): images from Stash, tag AND
+
+- **Stash as image source for performers** (`server/lib/stashImages.ts`): when
+  TPDB has no image, look the performer up in the user's Stash — first by the
+  TPDB uuid stored as a `stash_id`, then by exact name/alias match on a name
+  search (never fuzzy). Applied on discover, search, performer details and scene
+  performer refs; hits and misses cached 6 h (`stash` cache tier). Images are
+  served through `/imageproxy/stash/...` with Stash's ApiKey added server-side.
+  Verified: lookups run cleanly against the live Stash; no images yet because
+  the Stash library is still empty (0 scenes/performers).
+- **StashDB rejected as image fallback** after measuring: of 300 TPDB performers
+  in default order, 177 lack an image and none of those carry a StashDB link;
+  name search on StashDB for 25 of them gave 1 right and 2 wrong (alias
+  collisions). The StashDB key stays in `.env` (unused) in case exact-link
+  lookups are wanted later.
+- **"Only with photo"** toggle on the performers page (client-side, `withPhoto=1`
+  in the URL; keeps paging until a screenful has photos).
+- **Match all tags**: `tagAnd=1` → TPDB `tag_and=1`, checkbox in the scene filter
+  slideover once two or more tags are selected. Live: Airplane+Anal 10000 (any)
+  → 3 (all).
+
 ## Done (phase G)
 
 - **G1 telemetry sweep** — `server/api/github.ts` deleted; `/status` returns

@@ -1,6 +1,7 @@
 import Tpdb from '@server/api/tpdb';
 import { MediaType } from '@server/constants/media';
 import Media from '@server/entity/Media';
+import { stashPerformerImage } from '@server/lib/stashImages';
 import logger from '@server/logger';
 import { mapPerformerDetails } from '@server/models/Performer';
 import { mapSceneResult } from '@server/models/Scene';
@@ -13,7 +14,11 @@ performerRoutes.get('/:id', async (req, res, next) => {
     const performer = await new Tpdb().getPerformer({
       performerId: req.params.id,
     });
-    return res.status(200).json(mapPerformerDetails(performer));
+    const details = mapPerformerDetails(performer);
+    if (!details.posterPath) {
+      details.posterPath = await stashPerformerImage(performer);
+    }
+    return res.status(200).json(details);
   } catch (e) {
     logger.debug('Something went wrong retrieving performer', {
       label: 'API',

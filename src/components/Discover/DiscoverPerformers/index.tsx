@@ -16,7 +16,7 @@ import defineMessages from '@app/utils/defineMessages';
 import { BarsArrowDownIcon, FunnelIcon } from '@heroicons/react/24/solid';
 import type { PerformerResult } from '@server/models/Performer';
 import { useRouter } from 'next/router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
 
 const messages = defineMessages('components.Discover.DiscoverPerformers', {
@@ -30,6 +30,7 @@ const messages = defineMessages('components.Discover.DiscoverPerformers', {
   sort_recently_updated: 'Recently Updated',
   sort_recently_birthed: 'Youngest',
   sort_reverse_birthed: 'Oldest',
+  withphoto: 'Only with photo',
 });
 
 const DiscoverPerformers = () => {
@@ -51,6 +52,16 @@ const DiscoverPerformers = () => {
     '/api/v1/discover/performers',
     filters
   );
+
+  // Client-side only: TPDB cannot filter on "has an image", so hide the
+  // placeholders here and keep paging until a screenful has photos.
+  const withPhoto = router.query.withPhoto === '1';
+  const visible = withPhoto ? titles.filter((t) => t.posterPath) : titles;
+  useEffect(() => {
+    if (withPhoto && visible.length < 24 && !isReachingEnd && !isLoadingMore) {
+      fetchMore();
+    }
+  }, [withPhoto, visible.length, isReachingEnd, isLoadingMore, fetchMore]);
 
   if (error) {
     return <ErrorPage statusCode={500} />;
@@ -87,6 +98,19 @@ const DiscoverPerformers = () => {
             onClose={() => setShowFilters(false)}
             currentFilters={filters}
           />
+          <label className="mb-2 flex items-center space-x-2 whitespace-nowrap text-sm text-gray-300 sm:mb-0 sm:mr-2">
+            <input
+              type="checkbox"
+              checked={withPhoto}
+              onChange={(e) =>
+                updateQueryParams(
+                  'withPhoto',
+                  e.target.checked ? '1' : undefined
+                )
+              }
+            />
+            <span>{intl.formatMessage(messages.withphoto)}</span>
+          </label>
           <div className="mb-2 flex flex-grow sm:mb-0 lg:flex-grow-0">
             <Button onClick={() => setShowFilters(true)} className="w-full">
               <FunnelIcon />
@@ -100,7 +124,7 @@ const DiscoverPerformers = () => {
         </div>
       </div>
       <ListView
-        items={titles}
+        items={visible}
         isEmpty={isEmpty}
         isLoading={
           isLoadingInitialData || (isLoadingMore && (titles?.length ?? 0) > 0)

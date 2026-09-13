@@ -1,4 +1,5 @@
 import ImageProxy from '@server/lib/imageproxy';
+import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { Router } from 'express';
 
@@ -24,6 +25,27 @@ function initTpdbImageProxy(host: keyof typeof tpdbHosts) {
     });
   }
   return _tpdbImageProxies[host] as ImageProxy;
+}
+
+// The user's own Stash serves performer images behind its ApiKey, so they
+// always go through here (the key never reaches the browser). Rebuilt when the
+// Stash settings change.
+let _stashImageProxy: ImageProxy | undefined;
+let _stashImageProxyIdentity = '';
+function initStashImageProxy(): ImageProxy | undefined {
+  const { stash } = getSettings();
+  if (!stash.enabled || !stash.url) {
+    return undefined;
+  }
+  const baseUrl = stash.url.replace(/[/]+$/, '');
+  const identity = `${baseUrl}|${stash.apiKey}`;
+  if (!_stashImageProxy || _stashImageProxyIdentity !== identity) {
+    _stashImageProxy = new ImageProxy('stash', baseUrl, {
+      headers: { ApiKey: stash.apiKey },
+    });
+    _stashImageProxyIdentity = identity;
+  }
+  return _stashImageProxy;
 }
 
 router.get<{
@@ -54,6 +76,13 @@ router.get<{
       imageData = await initTpdbImageProxy(
         tpdbHost as keyof typeof tpdbHosts
       ).getImage('/' + tpdbPath.join('/'));
+    } else if (req.params.type === 'stash') {
+      const stashProxy = initStashImageProxy();
+      if (!stashProxy) {
+        res.status(404).send('Stash is not configured');
+        return;
+      }
+      imageData = await stashProxy.getImage(imagePath);
     } else {
       logger.error('Unsupported image type', {
         imagePath,
