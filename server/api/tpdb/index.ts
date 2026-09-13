@@ -218,6 +218,26 @@ class Tpdb extends ExternalAPI {
     });
   };
 
+  // TPDB's tag search matches whole words only ("gam" finds nothing), so the
+  // tags route searches this full, cached list instead. ~2650 tags, 89 pages.
+  public getAllTags = async (): Promise<TpdbTag[]> => {
+    const key = 'tags:all';
+    const cache = cacheManager.getCache('tpdb').data;
+    const cached = cache.get<TpdbTag[]>(key);
+    if (cached) {
+      return cached;
+    }
+    const first = await this.getTags({ page: 1 });
+    const rest = await Promise.all(
+      Array.from({ length: first.meta.last_page - 1 }, (_, i) =>
+        this.getTags({ page: i + 2 })
+      )
+    );
+    const all = [first, ...rest].flatMap((r) => r.data);
+    cache.set(key, all, 86400);
+    return all;
+  };
+
   public getTags = async ({
     query,
     page = 1,

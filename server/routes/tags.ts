@@ -7,15 +7,23 @@ const tagsRoutes = Router();
 // TPDB tags double as the "categories" browse list; alphabetical, searchable.
 tagsRoutes.get('/', async (req, res, next) => {
   try {
-    const results = await new Tpdb().getTags({
-      query: typeof req.query.query === 'string' ? req.query.query : undefined,
-      page: Number(req.query.page) || 1,
-    });
+    // Substring match over the cached full list; TPDB's own search only
+    // matches whole words. Paged the way the TPDB list was (30 per page).
+    const query =
+      typeof req.query.query === 'string' ? req.query.query.trim() : '';
+    const page = Number(req.query.page) || 1;
+    const perPage = 30;
+    const all = await new Tpdb().getAllTags();
+    const needle = query.toLowerCase();
+    const matches = needle
+      ? all.filter((tag) => tag.name.toLowerCase().includes(needle))
+      : all;
+    const slice = matches.slice((page - 1) * perPage, page * perPage);
     return res.status(200).json({
-      page: results.meta.current_page,
-      totalPages: results.meta.last_page,
-      totalResults: results.meta.total,
-      results: results.data.map((tag) => ({
+      page,
+      totalPages: Math.max(1, Math.ceil(matches.length / perPage)),
+      totalResults: matches.length,
+      results: slice.map((tag) => ({
         id: tag.id,
         name: tag.name,
         mediaType: 'tag' as const,
