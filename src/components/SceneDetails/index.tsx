@@ -257,9 +257,14 @@ const SceneDetails = ({ scene }: SceneDetailsProps) => {
           </div>
           <ul className="cards-vertical">
             {data.performers.map((performer) => (
-              <li key={`performer-${performer.id}`}>
+              <li key={`performer-${performer.id}-${performer.name}`}>
                 <PersonCard
                   personId={performer.id}
+                  href={
+                    performer.id === 0
+                      ? `/search?query=${encodeURIComponent(performer.name)}`
+                      : undefined
+                  }
                   name={performer.name}
                   profilePath={performer.posterPath}
                   canExpand

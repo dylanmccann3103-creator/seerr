@@ -9,6 +9,8 @@ interface PersonCardProps {
   subName?: string;
   profilePath?: string;
   canExpand?: boolean;
+  /** Overrides the default /performer/<id> link (e.g. search for unlinked performers). */
+  href?: string;
 }
 
 const PersonCard = ({
@@ -17,12 +19,13 @@ const PersonCard = ({
   subName,
   profilePath,
   canExpand = false,
+  href,
 }: PersonCardProps) => {
   const [isHovered, setHovered] = useState(false);
 
   return (
     <Link
-      href={`/performer/${personId}`}
+      href={href ?? `/performer/${personId}`}
       className={canExpand ? 'w-full' : 'w-36 sm:w-36 md:w-44'}
       onMouseEnter={() => {
         setHovered(true);

@@ -58,11 +58,15 @@ const mapSceneSiteRef = (site: TpdbSite): SceneSiteRef => ({
 });
 
 // Scene payloads embed site-performers; only the parent's id resolves on
-// /performers/{id} (live-verified 2026-09-12).
+// /performers/{id} (live-verified 2026-09-12). A site-performer without a
+// parent (e.g. a creator's own site) has no profile at all: id 0, so the UI
+// links to search instead of a 404.
 const mapScenePerformerRef = (
   performer: TpdbScenePerformer
 ): ScenePerformerRef => ({
-  id: numericId(performer.parent?._id ?? performer._id),
+  id: numericId(
+    performer.parent?._id ?? (performer.is_parent ? performer._id : undefined)
+  ),
   name: performer.name,
   posterPath: performer.image ?? performer.thumbnail ?? undefined,
 });
