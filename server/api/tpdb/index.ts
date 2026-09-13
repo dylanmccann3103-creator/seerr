@@ -5,9 +5,48 @@ import type {
   TpdbScene,
   TpdbSingleResponse,
   TpdbSite,
+  TpdbTag,
 } from '@server/api/tpdb/interfaces';
 import cacheManager from '@server/lib/cache';
 import { getSettings } from '@server/lib/settings';
+
+export const SCENE_ORDER_BY = [
+  'most_relevant',
+  'recently_released',
+  'former_released',
+  'recently_created',
+  'recently_updated',
+  'duration_desc',
+  'duration_asc',
+] as const;
+export type SceneOrderBy = (typeof SCENE_ORDER_BY)[number];
+
+export const PERFORMER_ORDER_BY = [
+  'most_relevant',
+  'asc_name',
+  'desc_name',
+  'recently_created',
+  'recently_updated',
+  'recently_birthed',
+  'reverse_birthed',
+] as const;
+export type PerformerOrderBy = (typeof PERFORMER_ORDER_BY)[number];
+
+export interface SceneListOptions extends PageOptions {
+  tags?: number[];
+  siteId?: number;
+  year?: number;
+  orderBy?: SceneOrderBy;
+}
+
+export interface PerformerListOptions extends PageOptions {
+  orderBy?: PerformerOrderBy;
+  gender?: string;
+  ethnicity?: string;
+  hairColour?: string;
+  eyeColour?: string;
+  letter?: string;
+}
 
 interface PageOptions {
   page?: number;
@@ -118,31 +157,71 @@ class Tpdb extends ExternalAPI {
     return response.data;
   };
 
-  // Newest-first: /scenes with no `q` is already sorted newest-first by
-  // default (no sort param changes this — see class comment).
-  public getRecentScenes = async ({ page = 1 }: PageOptions = {}): Promise<
-    TpdbPaginatedResponse<TpdbScene>
-  > => {
-    return this.get<TpdbPaginatedResponse<TpdbScene>>('/scenes', {
-      params: { page },
-    });
+  // Filters verified live (2026-09, see openapi.json on the API host):
+  // `tags[<id>]=<anything>` (Laravel deepObject, key = tag id, value ignored),
+  // `site_id`, `year`, `orderBy` (enum below). No `q` = newest first.
+  public getRecentScenes = async ({
+    page = 1,
+    tags,
+    siteId,
+    year,
+    orderBy,
+  }: SceneListOptions = {}): Promise<TpdbPaginatedResponse<TpdbScene>> => {
+    const params: Record<string, string | number> = { page };
+    for (const id of tags ?? []) {
+      params[`tags[${id}]`] = 1;
+    }
+    if (siteId) params.site_id = siteId;
+    if (year) params.year = year;
+    if (orderBy) params.orderBy = orderBy;
+    return this.get<TpdbPaginatedResponse<TpdbScene>>('/scenes', { params });
   };
 
-  // No popularity/trending sort exists on the public API (see class comment) —
-  // this is the default (alphabetical) site listing.
-  public getPopularSites = async ({ page = 1 }: PageOptions = {}): Promise<
+  // /sites only supports `q` and `letter`; the default order is alphabetical.
+  public getPopularSites = async ({
+    page = 1,
+    letter,
+  }: PageOptions & { letter?: string } = {}): Promise<
     TpdbPaginatedResponse<TpdbSite>
   > => {
     return this.get<TpdbPaginatedResponse<TpdbSite>>('/sites', {
-      params: { page },
+      params: { page, ...(letter ? { letter } : {}) },
     });
   };
 
-  public getPerformers = async ({ page = 1 }: PageOptions = {}): Promise<
+  // Enum values are title case with spaces ("Transgender Female", "Middle
+  // Eastern"); the openapi's UPPER_SNAKE spelling is rejected.
+  public getPerformers = async ({
+    page = 1,
+    orderBy,
+    gender,
+    ethnicity,
+    hairColour,
+    eyeColour,
+    letter,
+  }: PerformerListOptions = {}): Promise<
     TpdbPaginatedResponse<TpdbPerformer>
   > => {
+    const params: Record<string, string | number> = { page };
+    if (orderBy) params.orderBy = orderBy;
+    if (gender) params.gender = gender;
+    if (ethnicity) params.ethnicity = ethnicity;
+    if (hairColour) params.hair_colour = hairColour;
+    if (eyeColour) params.eye_colour = eyeColour;
+    if (letter) params.letter = letter;
     return this.get<TpdbPaginatedResponse<TpdbPerformer>>('/performers', {
-      params: { page },
+      params,
+    });
+  };
+
+  public getTags = async ({
+    query,
+    page = 1,
+  }: PageOptions & { query?: string } = {}): Promise<
+    TpdbPaginatedResponse<TpdbTag>
+  > => {
+    return this.get<TpdbPaginatedResponse<TpdbTag>>('/tags', {
+      params: { page, orderBy: 'asc_name', ...(query ? { q: query } : {}) },
     });
   };
 

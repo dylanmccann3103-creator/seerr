@@ -36,7 +36,7 @@ export const mapSiteDetails = (site: TpdbSite, media?: Media): SiteDetails => ({
   url: site.url,
   network: site.network ? mapSiteRef(site.network) : undefined,
   parent: site.parent ? mapSiteRef(site.parent) : undefined,
-  posterPath: site.poster ?? undefined,
+  posterPath: site.poster ?? site.logo ?? undefined,
   logoPath: site.logo ?? undefined,
   mediaInfo: media,
 });
@@ -52,7 +52,7 @@ export interface SiteResult {
 export const mapSiteResult = (site: TpdbSite, media?: Media): SiteResult => ({
   id: site.id,
   name: site.name,
-  posterPath: site.poster ?? undefined,
+  posterPath: site.poster ?? site.logo ?? undefined,
   mediaType: 'site',
   mediaInfo: media,
 });

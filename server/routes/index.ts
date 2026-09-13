@@ -25,6 +25,7 @@ import requestRoutes from './request';
 import sceneRoutes from './scene';
 import searchRoutes from './search';
 import siteRoutes from './site';
+import tagsRoutes from './tags';
 import user from './user';
 
 const router = Router();
@@ -95,6 +96,7 @@ router.get(
 router.use('/settings', isAuthenticated(Permission.ADMIN), settingsRoutes);
 router.use('/search', isAuthenticated(), searchRoutes);
 router.use('/discover', isAuthenticated(), discoverRoutes);
+router.use('/tags', isAuthenticated(), tagsRoutes);
 router.use('/request', isAuthenticated(), requestRoutes);
 router.use('/media', isAuthenticated(), mediaRoutes);
 router.use('/scene', isAuthenticated(), sceneRoutes);

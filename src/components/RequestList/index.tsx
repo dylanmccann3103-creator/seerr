@@ -21,7 +21,7 @@ import type { RequestResultsResponse } from '@server/interfaces/api/requestInter
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import { useIntl } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import useSWR from 'swr';
 
 const messages = defineMessages('components.RequestList', {
@@ -328,18 +328,24 @@ const RequestList = () => {
         >
           <div className="hidden lg:flex lg:flex-1">
             <p className="text-sm">
-              {data.results.length > 0 &&
-                intl.formatMessage(globalMessages.showingresults, {
-                  from: pageIndex * currentPageSize + 1,
-                  to:
-                    data.results.length < currentPageSize
-                      ? pageIndex * currentPageSize + data.results.length
-                      : (pageIndex + 1) * currentPageSize,
-                  total: data.pageInfo.results,
-                  strong: (msg: React.ReactNode) => (
-                    <span className="font-medium">{msg}</span>
-                  ),
-                })}
+              {data.results.length > 0 && (
+                // FormattedMessage spreads the rich-text nodes as children, so
+                // React does not ask for keys the way formatMessage's array does.
+                <FormattedMessage
+                  {...globalMessages.showingresults}
+                  values={{
+                    from: pageIndex * currentPageSize + 1,
+                    to:
+                      data.results.length < currentPageSize
+                        ? pageIndex * currentPageSize + data.results.length
+                        : (pageIndex + 1) * currentPageSize,
+                    total: data.pageInfo.results,
+                    strong: (msg: React.ReactNode) => (
+                      <span className="font-medium">{msg}</span>
+                    ),
+                  }}
+                />
+              )}
             </p>
           </div>
           <div className="flex justify-center sm:flex-1 sm:justify-start lg:justify-center">

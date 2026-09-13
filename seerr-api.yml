@@ -3291,6 +3291,24 @@ paths:
             type: number
             example: 1
             default: 1
+        - in: query
+          name: tags
+          schema:
+            type: string
+          description: Comma-separated TPDB tag ids
+        - in: query
+          name: siteId
+          schema:
+            type: number
+        - in: query
+          name: year
+          schema:
+            type: number
+        - in: query
+          name: orderBy
+          schema:
+            type: string
+            enum: [most_relevant, recently_released, former_released, recently_created, recently_updated, duration_desc, duration_asc]
       responses:
         '200':
           description: Results returned
@@ -3311,6 +3329,11 @@ paths:
             type: number
             example: 1
             default: 1
+        - in: query
+          name: letter
+          schema:
+            type: string
+          description: Single letter a-z
       responses:
         '200':
           description: Results returned
@@ -3331,6 +3354,31 @@ paths:
             type: number
             example: 1
             default: 1
+        - in: query
+          name: orderBy
+          schema:
+            type: string
+            enum: [most_relevant, asc_name, desc_name, recently_created, recently_updated, recently_birthed, reverse_birthed]
+        - in: query
+          name: gender
+          schema:
+            type: string
+        - in: query
+          name: ethnicity
+          schema:
+            type: string
+        - in: query
+          name: hairColour
+          schema:
+            type: string
+        - in: query
+          name: eyeColour
+          schema:
+            type: string
+        - in: query
+          name: letter
+          schema:
+            type: string
       responses:
         '200':
           description: Results returned
@@ -3338,6 +3386,49 @@ paths:
             application/json:
               schema:
                 type: object
+  /tags:
+    get:
+      summary: List TPDB tags (categories)
+      description: Alphabetical, searchable tag list from TPDB. Tag ids feed the `tags` filter of /discover/scenes.
+      tags:
+        - search
+      parameters:
+        - in: query
+          name: query
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: number
+            example: 1
+            default: 1
+      responses:
+        '200':
+          description: Results returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page:
+                    type: number
+                  totalPages:
+                    type: number
+                  totalResults:
+                    type: number
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: number
+                        name:
+                          type: string
+                        mediaType:
+                          type: string
+                          enum: [tag]
   /scene/{sceneId}:
     get:
       summary: Get scene details

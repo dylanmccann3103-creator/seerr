@@ -8,7 +8,7 @@ import useDiscover from '@app/hooks/useDiscover';
 import ErrorPage from '@app/pages/_error';
 import defineMessages from '@app/utils/defineMessages';
 import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
-import { MediaStatus } from '@server/constants/media';
+import { MediaRequestStatus, MediaStatus } from '@server/constants/media';
 import type { SceneResult } from '@server/models/Scene';
 import type { SiteDetails as SiteDetailsType } from '@server/models/Site';
 import Link from 'next/link';
@@ -21,6 +21,7 @@ const messages = defineMessages('components.SiteDetails', {
   overview: 'Overview',
   overviewunavailable: 'Overview unavailable.',
   years: 'Years',
+  monitored: 'Monitored',
   scenes: 'Scenes',
   network: 'Network',
   parent: 'Parent Site',
@@ -76,6 +77,21 @@ const SiteDetails = ({ site }: SiteDetailsProps) => {
     data.mediaInfo?.seasons?.find((s) => s.seasonNumber === year)?.status ??
     MediaStatus.UNKNOWN;
 
+  // The Whisparr scan marks monitored-but-fileless years PROCESSING, which the
+  // badge would call "Requested". Only call it that when a request exists.
+  const activeRequests = (data.mediaInfo?.requests ?? []).filter(
+    (r) =>
+      r.status !== MediaRequestStatus.DECLINED &&
+      r.status !== MediaRequestStatus.COMPLETED
+  );
+  const requestedYears = new Set(
+    activeRequests.flatMap((r) => r.seasons.map((s) => s.seasonNumber))
+  );
+  const monitoredLabel = (status: MediaStatus, requested: boolean) =>
+    status === MediaStatus.PROCESSING && !requested
+      ? intl.formatMessage(messages.monitored)
+      : undefined;
+
   return (
     <div className="media-page">
       <PageTitle title={data.name} />
@@ -101,6 +117,10 @@ const SiteDetails = ({ site }: SiteDetailsProps) => {
             {/* ponytail: no mediaType — StatusBadge manage/arr links are movie/tv only. */}
             <StatusBadge
               status={data.mediaInfo?.status}
+              statusLabelOverride={monitoredLabel(
+                data.mediaInfo?.status ?? MediaStatus.UNKNOWN,
+                activeRequests.length > 0
+              )}
               downloadItem={data.mediaInfo?.downloadStatus}
               title={data.name}
               mediaType="site"
@@ -148,7 +168,13 @@ const SiteDetails = ({ site }: SiteDetailsProps) => {
                     className="flex items-center justify-between px-4 py-2 text-white"
                   >
                     <span>{seasonNumber}</span>
-                    <StatusBadge status={yearStatus(seasonNumber)} />
+                    <StatusBadge
+                      status={yearStatus(seasonNumber)}
+                      statusLabelOverride={monitoredLabel(
+                        yearStatus(seasonNumber),
+                        requestedYears.has(seasonNumber)
+                      )}
+                    />
                   </li>
                 ))}
               </ul>

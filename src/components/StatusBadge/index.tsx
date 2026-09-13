@@ -301,7 +301,8 @@ const StatusBadge = ({
                 {intl.formatMessage(messages.status, {
                   status: inProgress
                     ? intl.formatMessage(globalMessages.processing)
-                    : intl.formatMessage(globalMessages.requested),
+                    : (statusLabelOverride ??
+                      intl.formatMessage(globalMessages.requested)),
                 })}
               </span>
               {inProgress && (

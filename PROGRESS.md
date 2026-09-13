@@ -31,14 +31,43 @@ Found + fixed:
   their old translations for these keys.
 
 Noted, not fixed:
-- React "unique key" dev warnings from `RequestList`/`IssueList` children (upstream
-  pattern, cosmetic).
-- Site page shows every year as "Requested" after the scan because monitored
-  seasons without files are PROCESSING; that is the upstream label for that state.
 - Setup wizard requires Jellyfin (no local-only path); a Jellyfin-less install needs
   the settings.json shortcut above.
 - Next dev warns about cross-origin `/_next/webpack-hmr` when the app is opened via
   the LAN IP; dev-only.
+
+### Follow-up (2026-09-13, second pass)
+
+- **Discover filters** (Seerr-style): scenes get a sort select (newest, oldest,
+  most relevant, recently added/updated, duration) and a filter slideover with
+  Tags (searchable multi-select over TPDB's ~2600 tags), Site and Year;
+  performers get sort + gender/ethnicity/hair/eye filters; sites get an A–Z
+  letter bar. New `/discover/categories` page lists all tags as cards linking
+  to the tag-filtered scene list; "Categories" in the sidebar.
+  TPDB specifics learned from its `openapi.json`: tag filter is the Laravel
+  deep-object form `tags[<id>]=x` (id in the key, value ignored); performer enum
+  values are title case with spaces ("Transgender Female", "Middle Eastern");
+  `/sites` supports only `q` and `letter`; `/tags` has no popularity data, so
+  there is no "popular categories" slider.
+- **Server**: `Tpdb.getRecentScenes/getPerformers/getPopularSites` take filter
+  options, new `Tpdb.getTags` + `GET /api/v1/tags`; discover routes validate
+  `orderBy` against the enum and drop unknown values. `seerr-api.yml` updated
+  (the request validator rejects undocumented query params).
+- **"Requested" label**: site page shows "Monitored" for PROCESSING years/site
+  without an active request (StatusBadge `statusLabelOverride` now applies to
+  PROCESSING too). Scan semantics unchanged.
+- **Key warnings**: `RequestList`/`IssueList` pagination text now uses
+  `<FormattedMessage>` (spreads rich-text nodes) instead of `formatMessage`
+  arrays; dev console is clean on requests/issues/home.
+- **Missing images**: measured on live TPDB — sites page 3: 89/100 have no
+  poster and no logo/background either; performers page 2: 58/100 have no
+  image/face/posters; scenes: ~1/100 lacks a poster (only an off-CDN `image`).
+  This is a data gap on TPDB, not a proxy/allowlist issue. Done: site cards fall
+  back to the site logo when there is no poster. Not done: showing off-CDN
+  `image` URLs (would bypass the two-host allowlist).
+- Found + fixed during the pass: categories page looped on `fetchMore`
+  (in-view sentinel re-fired every render) → now uses `useVerticalScroll` like
+  ListView; empty-string `query` params were rejected by the validator → omitted.
 
 ## Done (phase G)
 

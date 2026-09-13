@@ -10,6 +10,7 @@ import {
   ExclamationTriangleIcon,
   FilmIcon,
   SparklesIcon,
+  TagIcon,
   TvIcon,
   UserGroupIcon,
   UsersIcon,
@@ -26,6 +27,7 @@ export const menuMessages = defineMessages('components.Layout.Sidebar', {
   browsescenes: 'Scenes',
   browsesites: 'Sites',
   browseperformers: 'Performers',
+  browsecategories: 'Categories',
   requests: 'Requests',
   issues: 'Issues',
   users: 'Users',
@@ -76,6 +78,12 @@ const SidebarLinks: SidebarLinkProps[] = [
     messagesKey: 'browseperformers',
     svgIcon: <UserGroupIcon className="mr-3 h-6 w-6" />,
     activeRegExp: /^\/discover\/performers$/,
+  },
+  {
+    href: '/discover/categories',
+    messagesKey: 'browsecategories',
+    svgIcon: <TagIcon className="mr-3 h-6 w-6" />,
+    activeRegExp: /^\/discover\/categories$/,
   },
   {
     href: '/requests',
