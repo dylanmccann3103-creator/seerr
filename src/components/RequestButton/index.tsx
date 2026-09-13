@@ -1,6 +1,5 @@
 import ButtonWithDropdown from '@app/components/Common/ButtonWithDropdown';
 import RequestModal from '@app/components/RequestModal';
-import useSettings from '@app/hooks/useSettings';
 import { Permission, useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
@@ -20,21 +19,13 @@ import { mutate } from 'swr';
 
 const messages = defineMessages('components.RequestButton', {
   viewrequest: 'View Request',
-  viewrequest4k: 'View 4K Request',
   requestmore: 'Request More',
-  requestmore4k: 'Request More in 4K',
   approverequest: 'Approve Request',
-  approverequest4k: 'Approve 4K Request',
   declinerequest: 'Decline Request',
-  declinerequest4k: 'Decline 4K Request',
   approverequests:
     'Approve {requestCount, plural, one {Request} other {{requestCount} Requests}}',
   declinerequests:
     'Decline {requestCount, plural, one {Request} other {{requestCount} Requests}}',
-  approve4krequests:
-    'Approve {requestCount, plural, one {4K Request} other {{requestCount} 4K Requests}}',
-  decline4krequests:
-    'Decline {requestCount, plural, one {4K Request} other {{requestCount} 4K Requests}}',
 });
 
 interface ButtonOption {
@@ -50,7 +41,6 @@ interface RequestButtonProps {
   tmdbId: number;
   media?: Media;
   isShowComplete?: boolean;
-  is4kShowComplete?: boolean;
 }
 
 const RequestButton = ({
@@ -59,14 +49,12 @@ const RequestButton = ({
   media,
   mediaType,
   isShowComplete = false,
-  is4kShowComplete = false,
 }: RequestButtonProps) => {
   const intl = useIntl();
-  const settings = useSettings();
   const { user, hasPermission } = useUser();
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [editRequest, setEditRequest] = useState(false);
-  // scene ~ movie (one item), site ~ tv (year seasons); neither has 4K.
+  // scene ~ movie (one item), site ~ tv (year seasons).
   const isSingle = mediaType === 'movie' || mediaType === 'scene';
   const isSeasonal = mediaType === 'tv' || mediaType === 'site';
   const requestPermissions =
@@ -78,10 +66,7 @@ const RequestButton = ({
 
   // All pending requests
   const activeRequests = media?.requests.filter(
-    (request) => request.status === MediaRequestStatus.PENDING && !request.is4k
-  );
-  const active4kRequests = media?.requests.filter(
-    (request) => request.status === MediaRequestStatus.PENDING && request.is4k
+    (request) => request.status === MediaRequestStatus.PENDING
   );
 
   // Current user's pending request, or the first pending request
@@ -92,13 +77,6 @@ const RequestButton = ({
         ) ?? activeRequests[0])
       : undefined;
   }, [activeRequests, user]);
-  const active4kRequest = useMemo(() => {
-    return active4kRequests && active4kRequests.length > 0
-      ? (active4kRequests.find(
-          (request) => request.requestedBy.id === user?.id
-        ) ?? active4kRequests[0])
-      : undefined;
-  }, [active4kRequests, user]);
 
   const modifyRequest = async (
     request: MediaRequest,
@@ -133,7 +111,7 @@ const RequestButton = ({
   const buttons: ButtonOption[] = [];
 
   // If there are pending requests, show request management options first
-  if (activeRequest || active4kRequest) {
+  if (activeRequest) {
     if (
       activeRequest &&
       (activeRequest.requestedBy.id === user?.id ||
@@ -203,75 +181,6 @@ const RequestButton = ({
         }
       );
     }
-
-    if (
-      active4kRequest &&
-      (active4kRequest.requestedBy.id === user?.id ||
-        (active4kRequests?.length === 1 &&
-          hasPermission(Permission.MANAGE_REQUESTS)))
-    ) {
-      buttons.push({
-        id: 'active-4k-request',
-        text: intl.formatMessage(messages.viewrequest4k),
-        action: () => {
-          setEditRequest(true);
-        },
-        svg: <InformationCircleIcon />,
-      });
-    }
-
-    if (
-      active4kRequest &&
-      hasPermission(Permission.MANAGE_REQUESTS) &&
-      mediaType === 'movie'
-    ) {
-      buttons.push(
-        {
-          id: 'approve-4k-request',
-          text: intl.formatMessage(messages.approverequest4k),
-          action: () => {
-            modifyRequest(active4kRequest, 'approve');
-          },
-          svg: <CheckIcon />,
-        },
-        {
-          id: 'decline-4k-request',
-          text: intl.formatMessage(messages.declinerequest4k),
-          action: () => {
-            modifyRequest(active4kRequest, 'decline');
-          },
-          svg: <XMarkIcon />,
-        }
-      );
-    } else if (
-      active4kRequests &&
-      active4kRequests.length > 0 &&
-      hasPermission(Permission.MANAGE_REQUESTS) &&
-      mediaType === 'tv'
-    ) {
-      buttons.push(
-        {
-          id: 'approve-4k-request-batch',
-          text: intl.formatMessage(messages.approve4krequests, {
-            requestCount: active4kRequests.length,
-          }),
-          action: () => {
-            modifyRequests(active4kRequests, 'approve');
-          },
-          svg: <CheckIcon />,
-        },
-        {
-          id: 'decline-4k-request-batch',
-          text: intl.formatMessage(messages.decline4krequests, {
-            requestCount: active4kRequests.length,
-          }),
-          action: () => {
-            modifyRequests(active4kRequests, 'decline');
-          },
-          svg: <XMarkIcon />,
-        }
-      );
-    }
   }
 
   // Standard request button
@@ -304,52 +213,6 @@ const RequestButton = ({
       action: () => {
         setEditRequest(false);
         setShowRequestModal(true);
-      },
-      svg: <ArrowDownTrayIcon />,
-    });
-  }
-
-  // 4K request button
-  if (
-    (!media ||
-      media.status4k === MediaStatus.UNKNOWN ||
-      (media.status4k === MediaStatus.DELETED && !active4kRequest)) &&
-    hasPermission(
-      [
-        Permission.REQUEST_4K,
-        mediaType === 'movie'
-          ? Permission.REQUEST_4K_MOVIE
-          : Permission.REQUEST_4K_TV,
-      ],
-      { type: 'or' }
-    ) &&
-    ((settings.currentSettings.movie4kEnabled && mediaType === 'movie') ||
-      (settings.currentSettings.series4kEnabled && mediaType === 'tv'))
-  ) {
-    buttons.push({
-      id: 'request4k',
-      text: intl.formatMessage(globalMessages.request4k),
-      action: () => {
-        setEditRequest(false);
-      },
-      svg: <ArrowDownTrayIcon />,
-    });
-  } else if (
-    mediaType === 'tv' &&
-    (!active4kRequest || active4kRequest.requestedBy.id !== user?.id) &&
-    hasPermission([Permission.REQUEST_4K, Permission.REQUEST_4K_TV], {
-      type: 'or',
-    }) &&
-    media &&
-    media.status4k !== MediaStatus.BLOCKLISTED &&
-    !is4kShowComplete &&
-    settings.currentSettings.series4kEnabled
-  ) {
-    buttons.push({
-      id: 'request-more-4k',
-      text: intl.formatMessage(messages.requestmore4k),
-      action: () => {
-        setEditRequest(false);
       },
       svg: <ArrowDownTrayIcon />,
     });

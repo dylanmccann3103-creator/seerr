@@ -38,7 +38,7 @@ interface SceneRequestModalProps {
   onUpdating?: (isUpdating: boolean) => void;
 }
 
-// Movie modal minus 4K and the AdvancedRequester.
+// Movie modal minus the AdvancedRequester.
 // ponytail: single Whisparr server with fixed profile/folder, so there is
 // nothing to override per request; add AdvancedRequester back if a second
 // server or per-request profiles ever land.

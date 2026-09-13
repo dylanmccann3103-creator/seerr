@@ -85,9 +85,7 @@ const RequestCardError = ({ requestData }: RequestCardErrorProps) => {
   const plexUrl = requestData?.media?.mediaUrl;
 
   const requestDownloadStatus = getRequestDownloadStatus(
-    requestData?.media?.[
-      requestData?.is4k ? 'downloadStatus4k' : 'downloadStatus'
-    ],
+    requestData?.media?.downloadStatus,
     isSeasonalRequest(requestData?.type ?? '')
       ? (requestData?.seasons ?? []).map((season) => season.seasonNumber)
       : []
@@ -156,15 +154,10 @@ const RequestCardError = ({ requestData }: RequestCardErrorProps) => {
                     </Badge>
                   ) : (
                     <StatusBadge
-                      status={
-                        requestData.media[
-                          requestData.is4k ? 'status4k' : 'status'
-                        ]
-                      }
+                      status={requestData.media.status}
                       downloadItem={requestDownloadStatus}
                       title={intl.formatMessage(messages.unknowntitle)}
                       inProgress={requestDownloadStatus.length > 0}
-                      is4k={requestData.is4k}
                       mediaType={requestType(requestData)}
                       plexUrl={plexUrl}
                     />
@@ -236,7 +229,6 @@ const RequestCard = ({ request, onTitleData }: RequestCardProps) => {
       refreshInterval: refreshIntervalHelper(
         {
           downloadStatus: request.media.downloadStatus,
-          downloadStatus4k: request.media.downloadStatus4k,
         },
         15000
       ),
@@ -309,7 +301,7 @@ const RequestCard = ({ request, onTitleData }: RequestCardProps) => {
   }
 
   const requestDownloadStatus = getRequestDownloadStatus(
-    requestData.media[requestData.is4k ? 'downloadStatus4k' : 'downloadStatus'],
+    requestData.media.downloadStatus,
     isSeasonalRequest(requestData.type)
       ? requestData.seasons.map((season) => season.seasonNumber)
       : []
@@ -427,8 +419,7 @@ const RequestCard = ({ request, onTitleData }: RequestCardProps) => {
                 {intl.formatMessage(globalMessages.failed)}
               </Badge>
             ) : requestData.status === MediaRequestStatus.PENDING &&
-              requestData.media[requestData.is4k ? 'status4k' : 'status'] ===
-                MediaStatus.DELETED ? (
+              requestData.media.status === MediaStatus.DELETED ? (
               <Badge
                 badgeType="warning"
                 href={`${requestLink(requestData)}?manage=1`}
@@ -437,13 +428,10 @@ const RequestCard = ({ request, onTitleData }: RequestCardProps) => {
               </Badge>
             ) : (
               <StatusBadge
-                status={
-                  requestData.media[requestData.is4k ? 'status4k' : 'status']
-                }
+                status={requestData.media.status}
                 downloadItem={requestDownloadStatus}
                 title={title.name}
                 inProgress={requestDownloadStatus.length > 0}
-                is4k={requestData.is4k}
                 tmdbId={requestMediaId(requestData)}
                 mediaType={requestType(requestData)}
                 plexUrl={plexUrl}

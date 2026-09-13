@@ -195,11 +195,6 @@ const RequestBlock = ({ request, onUpdate }: RequestBlockProps) => {
         <div className="mt-2 sm:flex sm:justify-between">
           <div className="sm:flex">
             <div className="mr-6 flex items-center text-sm leading-5">
-              {request.is4k && (
-                <span className="mr-1">
-                  <Badge badgeType="warning">4K</Badge>
-                </span>
-              )}
               {request.status === MediaRequestStatus.APPROVED && (
                 <Badge badgeType="success">
                   {intl.formatMessage(globalMessages.approved)}

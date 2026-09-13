@@ -52,10 +52,7 @@ class BaseScanner<T> {
    * DECLINED clears the duplicate-request guard so the user can re-request it.
    * Callers must load the requests relation on the media.
    */
-  protected async declineOrphanedRequests(
-    media: Media,
-    is4k: boolean
-  ): Promise<void> {
+  protected async declineOrphanedRequests(media: Media): Promise<void> {
     if (media.requests === undefined) {
       throw new Error(
         `declineOrphanedRequests called for media ${media.id} without the 'requests' relation loaded`
@@ -65,8 +62,7 @@ class BaseScanner<T> {
     const requestRepository = getRepository(MediaRequest);
 
     const orphanedRequests = (media.requests ?? []).filter(
-      (request) =>
-        request.is4k === is4k && request.status === MediaRequestStatus.APPROVED
+      (request) => request.status === MediaRequestStatus.APPROVED
     );
 
     for (const request of orphanedRequests) {

@@ -13,7 +13,6 @@ import { useIntl } from 'react-intl';
 
 const messages = defineMessages('components.StatusBadge', {
   status: '{status}',
-  status4k: '4K {status}',
   playonplex: 'Play on {mediaServerName}',
   openinarr: 'Open in {arr}',
   managemedia: 'Manage {mediaType}',
@@ -24,7 +23,6 @@ const messages = defineMessages('components.StatusBadge', {
 interface StatusBadgeProps {
   status?: MediaStatus;
   downloadItem?: DownloadingItem[];
-  is4k?: boolean;
   inProgress?: boolean;
   plexUrl?: string;
   serviceUrl?: string;
@@ -37,7 +35,6 @@ interface StatusBadgeProps {
 const StatusBadge = ({
   status,
   downloadItem = [],
-  is4k = false,
   inProgress = false,
   plexUrl,
   serviceUrl,
@@ -75,27 +72,16 @@ const StatusBadge = ({
     hasPermission(
       isTpdb
         ? [Permission.REQUEST]
-        : is4k
-          ? [
-              Permission.REQUEST_4K,
-              mediaType === 'movie'
-                ? Permission.REQUEST_4K_MOVIE
-                : Permission.REQUEST_4K_TV,
-            ]
-          : [
-              Permission.REQUEST,
-              mediaType === 'movie'
-                ? Permission.REQUEST_MOVIE
-                : Permission.REQUEST_TV,
-            ],
+        : [
+            Permission.REQUEST,
+            mediaType === 'movie'
+              ? Permission.REQUEST_MOVIE
+              : Permission.REQUEST_TV,
+          ],
       {
         type: 'or',
       }
-    ) &&
-    (!is4k ||
-      (mediaType === 'movie'
-        ? settings.currentSettings.movie4kEnabled
-        : settings.currentSettings.series4kEnabled))
+    )
   ) {
     mediaLink = plexUrl;
     mediaLinkDescription = intl.formatMessage(messages.playonplex, {
@@ -128,7 +114,6 @@ const StatusBadge = ({
       <DownloadBlock
         downloadItem={downloadItem[0]}
         title={Array.isArray(title) ? title[0] : title}
-        is4k={is4k}
       />
     ) : (
       <ul>
@@ -140,7 +125,6 @@ const StatusBadge = ({
             <DownloadBlock
               downloadItem={status}
               title={Array.isArray(title) ? title[index] : title}
-              is4k={is4k}
             />
           </li>
         ))}
@@ -190,14 +174,11 @@ const StatusBadge = ({
               }`}
             >
               <span>
-                {intl.formatMessage(
-                  is4k ? messages.status4k : messages.status,
-                  {
-                    status: inProgress
-                      ? intl.formatMessage(globalMessages.processing)
-                      : intl.formatMessage(globalMessages.available),
-                  }
-                )}
+                {intl.formatMessage(messages.status, {
+                  status: inProgress
+                    ? intl.formatMessage(globalMessages.processing)
+                    : intl.formatMessage(globalMessages.available),
+                })}
               </span>
               {inProgress && (
                 <>
@@ -255,14 +236,11 @@ const StatusBadge = ({
               }`}
             >
               <span>
-                {intl.formatMessage(
-                  is4k ? messages.status4k : messages.status,
-                  {
-                    status: inProgress
-                      ? intl.formatMessage(globalMessages.processing)
-                      : intl.formatMessage(globalMessages.partiallyavailable),
-                  }
-                )}
+                {intl.formatMessage(messages.status, {
+                  status: inProgress
+                    ? intl.formatMessage(globalMessages.processing)
+                    : intl.formatMessage(globalMessages.partiallyavailable),
+                })}
               </span>
               {inProgress && (
                 <>
@@ -320,14 +298,11 @@ const StatusBadge = ({
               }`}
             >
               <span>
-                {intl.formatMessage(
-                  is4k ? messages.status4k : messages.status,
-                  {
-                    status: inProgress
-                      ? intl.formatMessage(globalMessages.processing)
-                      : intl.formatMessage(globalMessages.requested),
-                  }
-                )}
+                {intl.formatMessage(messages.status, {
+                  status: inProgress
+                    ? intl.formatMessage(globalMessages.processing)
+                    : intl.formatMessage(globalMessages.requested),
+                })}
               </span>
               {inProgress && (
                 <>
@@ -364,7 +339,7 @@ const StatusBadge = ({
       return (
         <Tooltip content={mediaLinkDescription}>
           <Badge badgeType="warning" href={mediaLink}>
-            {intl.formatMessage(is4k ? messages.status4k : messages.status, {
+            {intl.formatMessage(messages.status, {
               status: intl.formatMessage(globalMessages.pending),
             })}
           </Badge>
@@ -375,7 +350,7 @@ const StatusBadge = ({
       return (
         <Tooltip content={mediaLinkDescription}>
           <Badge badgeType="danger" href={mediaLink}>
-            {intl.formatMessage(is4k ? messages.status4k : messages.status, {
+            {intl.formatMessage(messages.status, {
               status:
                 statusLabelOverride ??
                 intl.formatMessage(globalMessages.blocklisted),
@@ -409,14 +384,11 @@ const StatusBadge = ({
               }`}
             >
               <span>
-                {intl.formatMessage(
-                  is4k ? messages.status4k : messages.status,
-                  {
-                    status: inProgress
-                      ? intl.formatMessage(globalMessages.processing)
-                      : intl.formatMessage(globalMessages.deleted),
-                  }
-                )}
+                {intl.formatMessage(messages.status, {
+                  status: inProgress
+                    ? intl.formatMessage(globalMessages.processing)
+                    : intl.formatMessage(globalMessages.deleted),
+                })}
               </span>
               {inProgress && (
                 <>

@@ -13,10 +13,4 @@ export interface MediaWatchDataResponse {
     playCount7Days: number;
     playCount30Days: number;
   };
-  data4k?: {
-    users: User[];
-    playCount: number;
-    playCount7Days: number;
-    playCount30Days: number;
-  };
 }

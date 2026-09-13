@@ -218,7 +218,6 @@ class WhisparrScanner
           tmdbId: NO_TMDB_ID,
           tpdbId,
           status,
-          status4k: MediaStatus.UNKNOWN,
           externalServiceId: episode.id,
         })
       );
@@ -244,7 +243,6 @@ class WhisparrScanner
           tpdbId,
           seasons: [],
           status: MediaStatus.UNKNOWN,
-          status4k: MediaStatus.UNKNOWN,
         });
 
       const availableBefore = media.seasons.filter(
@@ -258,7 +256,6 @@ class WhisparrScanner
             const created = new Season({
               seasonNumber: year,
               status: MediaStatus.UNKNOWN,
-              status4k: MediaStatus.UNKNOWN,
             });
             media.seasons.push(created);
             return created;
@@ -344,7 +341,7 @@ class WhisparrScanner
       }
       await mediaRepository.save(media);
       if (wasProcessing) {
-        await this.declineOrphanedRequests(media, false);
+        await this.declineOrphanedRequests(media);
       }
       this.log(
         `${media.mediaType} ${media.tpdbId} not found in Whisparr. Status set to ${next}.`,

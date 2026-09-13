@@ -128,12 +128,9 @@ requestRoutes.get<Record<string, unknown>, RequestResultsResponse>(
         .where('request.status IN (:...requestStatus)', {
           requestStatus: statusFilter,
         })
-        .andWhere(
-          '((request.is4k = false AND media.status IN (:...mediaStatus)) OR (request.is4k = true AND media.status4k IN (:...mediaStatus)))',
-          {
-            mediaStatus: mediaStatusFilter,
-          }
-        );
+        .andWhere('media.status IN (:...mediaStatus)', {
+          mediaStatus: mediaStatusFilter,
+        });
 
       if (
         !req.user?.hasPermission(
@@ -287,24 +284,18 @@ requestRoutes.get('/count', async (_req, res, next) => {
       .where('request.status = :requestStatus', {
         requestStatus: MediaRequestStatus.APPROVED,
       })
-      .andWhere(
-        '((request.is4k = false AND media.status != :availableStatus) OR (request.is4k = true AND media.status4k != :availableStatus))',
-        {
-          availableStatus: MediaStatus.AVAILABLE,
-        }
-      )
+      .andWhere('media.status != :availableStatus', {
+        availableStatus: MediaStatus.AVAILABLE,
+      })
       .getCount();
 
     const availableCount = await query
       .where('request.status = :requestStatus', {
         requestStatus: MediaRequestStatus.APPROVED,
       })
-      .andWhere(
-        '((request.is4k = false AND media.status = :availableStatus) OR (request.is4k = true AND media.status4k = :availableStatus))',
-        {
-          availableStatus: MediaStatus.AVAILABLE,
-        }
-      )
+      .andWhere('media.status = :availableStatus', {
+        availableStatus: MediaStatus.AVAILABLE,
+      })
       .getCount();
 
     const completedCount = await query
@@ -455,7 +446,6 @@ requestRoutes.put<{ requestId: string }>(
         const existingSeasons = media.requests
           .filter(
             (r) =>
-              r.is4k === request.is4k &&
               r.id !== request.id &&
               r.status !== MediaRequestStatus.DECLINED &&
               r.status !== MediaRequestStatus.COMPLETED

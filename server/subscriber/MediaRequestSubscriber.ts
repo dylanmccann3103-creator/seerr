@@ -265,10 +265,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
     }
 
     // Check availability using fresh media state
-    if (
-      !latestMedia ||
-      latestMedia[entity.is4k ? 'status4k' : 'status'] !== MediaStatus.AVAILABLE
-    ) {
+    if (!latestMedia || latestMedia.status !== MediaStatus.AVAILABLE) {
       return;
     }
 
@@ -328,7 +325,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
       entity.seasons?.map((entitySeason) => entitySeason.seasonNumber) ?? [];
     const availableSeasons = latestMedia.seasons.filter(
       (season) =>
-        season[entity.is4k ? 'status4k' : 'status'] === MediaStatus.AVAILABLE &&
+        season.status === MediaStatus.AVAILABLE &&
         requestedSeasons.includes(season.seasonNumber)
     );
     const isMediaAvailable =
@@ -391,27 +388,27 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
       return;
     }
 
-    const statusKey = entity.is4k ? 'status4k' : 'status';
+    const statusKey = 'status';
     const seasonRequestRepository = manager.getRepository(SeasonRequest);
     const requestRepository = manager.getRepository(MediaRequest);
 
     if (
       entity.status === MediaRequestStatus.APPROVED &&
       // Do not update the status if the item is already partially available or available
-      media[statusKey] !== MediaStatus.AVAILABLE &&
-      media[statusKey] !== MediaStatus.PARTIALLY_AVAILABLE &&
-      media[statusKey] !== MediaStatus.PROCESSING
+      media.status !== MediaStatus.AVAILABLE &&
+      media.status !== MediaStatus.PARTIALLY_AVAILABLE &&
+      media.status !== MediaStatus.PROCESSING
     ) {
-      media[statusKey] = MediaStatus.PROCESSING;
+      media.status = MediaStatus.PROCESSING;
       await mediaRepository.save(media);
     }
 
     if (
       isSingleItem(media.mediaType) &&
       entity.status === MediaRequestStatus.DECLINED &&
-      media[statusKey] !== MediaStatus.DELETED
+      media.status !== MediaStatus.DELETED
     ) {
-      media[statusKey] = MediaStatus.UNKNOWN;
+      media.status = MediaStatus.UNKNOWN;
       await mediaRepository.save(media);
     }
 
@@ -424,13 +421,12 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
     if (
       isSeasonal(media.mediaType) &&
       entity.status === MediaRequestStatus.DECLINED &&
-      media[statusKey] === MediaStatus.PENDING
+      media.status === MediaStatus.PENDING
     ) {
       const pendingCount = await requestRepository.count({
         where: {
           media: { id: media.id },
           status: MediaRequestStatus.PENDING,
-          is4k: entity.is4k,
           id: Not(entity.id),
         },
       });
@@ -465,13 +461,12 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
           (s) => s.seasonNumber === seasonRequest.seasonNumber
         );
 
-        if (season && season[statusKey] === MediaStatus.PENDING) {
+        if (season && season.status === MediaStatus.PENDING) {
           const otherActiveRequests = await requestRepository
             .createQueryBuilder('request')
             .leftJoinAndSelect('request.seasons', 'season')
             .where('request.mediaId = :mediaId', { mediaId: media.id })
             .andWhere('request.id != :requestId', { requestId: entity.id })
-            .andWhere('request.is4k = :is4k', { is4k: entity.is4k })
             .andWhere('request.status NOT IN (:...statuses)', {
               statuses: [
                 MediaRequestStatus.DECLINED,
@@ -484,7 +479,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
             .getCount();
 
           if (otherActiveRequests === 0) {
-            season[statusKey] = MediaStatus.UNKNOWN;
+            season.status = MediaStatus.UNKNOWN;
             await seasonRepository.save(season);
           }
         }
@@ -514,13 +509,6 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
 
     const hasActive = fullMedia.requests.some(
       (request) =>
-        !request.is4k &&
-        request.status !== MediaRequestStatus.COMPLETED &&
-        request.status !== MediaRequestStatus.DECLINED
-    );
-    const hasActive4k = fullMedia.requests.some(
-      (request) =>
-        request.is4k &&
         request.status !== MediaRequestStatus.COMPLETED &&
         request.status !== MediaRequestStatus.DECLINED
     );
@@ -530,41 +518,24 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
       fullMedia.status !== MediaStatus.AVAILABLE &&
       fullMedia.status !== MediaStatus.PARTIALLY_AVAILABLE;
 
-    const needs4kStatusUpdate =
-      !hasActive4k &&
-      fullMedia.status4k !== MediaStatus.AVAILABLE &&
-      fullMedia.status4k !== MediaStatus.PARTIALLY_AVAILABLE;
-
-    if (needsStatusUpdate || needs4kStatusUpdate) {
+    if (needsStatusUpdate) {
       // Re-fetch WITHOUT requests to avoid cascade issues on save
       const cleanMedia = await manager.findOneOrFail(Media, {
         where: { id: entity.media.id },
       });
 
-      if (needsStatusUpdate) {
-        const hadCompleted = fullMedia.requests.some(
-          (r) => !r.is4k && r.status === MediaRequestStatus.COMPLETED
-        );
-        cleanMedia.status = hadCompleted
-          ? MediaStatus.DELETED
-          : MediaStatus.UNKNOWN;
-      }
-
-      if (needs4kStatusUpdate) {
-        const hadCompleted4k = fullMedia.requests.some(
-          (r) => r.is4k && r.status === MediaRequestStatus.COMPLETED
-        );
-        cleanMedia.status4k = hadCompleted4k
-          ? MediaStatus.DELETED
-          : MediaStatus.UNKNOWN;
-      }
+      const hadCompleted = fullMedia.requests.some(
+        (r) => r.status === MediaRequestStatus.COMPLETED
+      );
+      cleanMedia.status = hadCompleted
+        ? MediaStatus.DELETED
+        : MediaStatus.UNKNOWN;
 
       await manager.save(cleanMedia);
     }
 
     // Reset stale seasons or re-requests fail ("No seasons available to request")
     if (isSeasonal(fullMedia.mediaType)) {
-      const statusKey = entity.is4k ? 'status4k' : 'status';
       const removedSeasonNumbers = new Set(
         entity.seasons.map((s) => s.seasonNumber)
       );
@@ -572,7 +543,6 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
         fullMedia.requests
           .filter(
             (request) =>
-              request.is4k === entity.is4k &&
               request.status !== MediaRequestStatus.COMPLETED &&
               request.status !== MediaRequestStatus.DECLINED
           )
@@ -582,12 +552,12 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
       const changedSeasons: Season[] = [];
       for (const season of fullMedia.seasons) {
         if (
-          (season[statusKey] === MediaStatus.PENDING ||
-            season[statusKey] === MediaStatus.PROCESSING) &&
+          (season.status === MediaStatus.PENDING ||
+            season.status === MediaStatus.PROCESSING) &&
           removedSeasonNumbers.has(season.seasonNumber) &&
           !activeSeasonNumbers.has(season.seasonNumber)
         ) {
-          season[statusKey] = MediaStatus.UNKNOWN;
+          season.status = MediaStatus.UNKNOWN;
           changedSeasons.push(season);
         }
       }

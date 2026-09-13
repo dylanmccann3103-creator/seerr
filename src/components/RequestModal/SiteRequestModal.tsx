@@ -47,7 +47,7 @@ interface SiteRequestModalProps {
   editRequest?: NonFunctionProperties<MediaRequest>;
 }
 
-// Series modal with calendar years as seasons (PLAN.md D2), minus 4K, tvdb
+// Series modal with calendar years as seasons (PLAN.md D2), minus tvdb
 // lookup, anime and the AdvancedRequester (single Whisparr server).
 // ponytail: edit mode is approve/cancel only — PUT /request/:id has no
 // site branch yet; add year editing there first if it is ever wanted.

@@ -152,12 +152,10 @@ describe('Whisparr Scanner', () => {
         tmdbId: 0,
         tpdbId: '555',
         status: MediaStatus.PROCESSING,
-        status4k: MediaStatus.UNKNOWN,
         seasons: [
           new Season({
             seasonNumber: 2010,
             status: MediaStatus.PROCESSING,
-            status4k: MediaStatus.UNKNOWN,
           }),
         ],
       })
@@ -170,7 +168,6 @@ describe('Whisparr Scanner', () => {
         status: MediaRequestStatus.APPROVED,
         // already dispatched, so the subscriber's Whisparr send is skipped
         sentToServiceAt: new Date(),
-        is4k: false,
         seasons: [],
       })
     );

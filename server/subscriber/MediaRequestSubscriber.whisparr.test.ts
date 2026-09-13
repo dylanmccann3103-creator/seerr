@@ -262,7 +262,6 @@ describe('Whisparr request flow', () => {
       new Season({
         seasonNumber: 2010,
         status: MediaStatus.AVAILABLE,
-        status4k: MediaStatus.UNKNOWN,
       }),
     ];
     siteMedia.status = MediaStatus.AVAILABLE;

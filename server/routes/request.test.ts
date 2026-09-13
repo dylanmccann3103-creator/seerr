@@ -114,7 +114,6 @@ async function seedRequest(status = MediaRequestStatus.PENDING) {
       mediaType: MediaType.SCENE,
       tmdbId: 12345,
       status: MediaStatus.UNKNOWN,
-      status4k: MediaStatus.UNKNOWN,
     })
   );
 
@@ -124,7 +123,6 @@ async function seedRequest(status = MediaRequestStatus.PENDING) {
       status,
       media,
       requestedBy,
-      is4k: false,
       updatedAt: new Date('2025-03-01T00:00:00.000Z'),
     })
   );
@@ -169,7 +167,6 @@ describe('DELETE /request/:requestId', () => {
         mediaType: MediaType.SCENE,
         tmdbId: 54321,
         status: MediaStatus.UNKNOWN,
-        status4k: MediaStatus.UNKNOWN,
       })
     );
 
@@ -179,7 +176,6 @@ describe('DELETE /request/:requestId', () => {
         status: MediaRequestStatus.PENDING,
         media,
         requestedBy: owner,
-        is4k: false,
       })
     );
 
@@ -334,7 +330,6 @@ describe('DELETE /request/:requestId, deleted media status restoration', () => {
         mediaType: MediaType.SCENE,
         tmdbId: 99001,
         status: MediaStatus.DELETED,
-        status4k: MediaStatus.UNKNOWN,
       })
     );
 
@@ -344,7 +339,6 @@ describe('DELETE /request/:requestId, deleted media status restoration', () => {
         status: MediaRequestStatus.COMPLETED,
         media,
         requestedBy: admin,
-        is4k: false,
         isAutoRequest: true,
       })
     );
@@ -358,7 +352,6 @@ describe('DELETE /request/:requestId, deleted media status restoration', () => {
         status: MediaRequestStatus.APPROVED,
         media,
         requestedBy: admin,
-        is4k: false,
       })
     );
 
@@ -414,7 +407,6 @@ describe('DELETE /request/:requestId, deleted media status restoration', () => {
         mediaType: MediaType.SCENE,
         tmdbId: 99002,
         status: MediaStatus.PENDING,
-        status4k: MediaStatus.UNKNOWN,
       })
     );
 
@@ -424,7 +416,6 @@ describe('DELETE /request/:requestId, deleted media status restoration', () => {
         status: MediaRequestStatus.PENDING,
         media,
         requestedBy: admin,
-        is4k: false,
       })
     );
 
@@ -434,7 +425,6 @@ describe('DELETE /request/:requestId, deleted media status restoration', () => {
         status: MediaRequestStatus.PENDING,
         media,
         requestedBy: admin,
-        is4k: false,
       })
     );
 
@@ -461,7 +451,6 @@ describe('DELETE /request/:requestId, deleted media status restoration', () => {
         mediaType: MediaType.SCENE,
         tmdbId: 99005,
         status: MediaStatus.PARTIALLY_AVAILABLE,
-        status4k: MediaStatus.UNKNOWN,
       })
     );
 
@@ -471,7 +460,6 @@ describe('DELETE /request/:requestId, deleted media status restoration', () => {
         status: MediaRequestStatus.COMPLETED,
         media,
         requestedBy: admin,
-        is4k: false,
       })
     );
 
@@ -498,7 +486,6 @@ describe('DELETE /request/:requestId, orphaned season status reset', () => {
         tmdbId,
         tpdbId: String(tmdbId),
         status: MediaStatus.PROCESSING,
-        status4k: MediaStatus.UNKNOWN,
         seasons: seasons.map((season) => new Season(season)),
       })
     );
@@ -521,7 +508,6 @@ describe('DELETE /request/:requestId, orphaned season status reset', () => {
         status: MediaRequestStatus.APPROVED,
         media,
         requestedBy: admin,
-        is4k: false,
         seasons: seasonNumbers.map(
           (seasonNumber) =>
             new SeasonRequest({
@@ -591,25 +577,5 @@ describe('DELETE /request/:requestId, orphaned season status reset', () => {
 
     const updated = await mediaRepo.findOneOrFail({ where: { id: media.id } });
     assert.strictEqual(updated.seasons[0].status, MediaStatus.PROCESSING);
-  });
-
-  it('leaves season status4k untouched when deleting a non-4K request', async () => {
-    const mediaRepo = getRepository(Media);
-    const media = await seedTvShow(99104, [
-      {
-        seasonNumber: 1,
-        status: MediaStatus.PROCESSING,
-        status4k: MediaStatus.PROCESSING,
-      },
-    ]);
-    const tvRequest = await seedTvRequest(media, [1]);
-
-    const admin = await loginAs('admin@seerr.dev', 'test1234');
-    const res = await admin.delete(`/request/${tvRequest.id}`);
-    assert.strictEqual(res.status, 204);
-
-    const updated = await mediaRepo.findOneOrFail({ where: { id: media.id } });
-    assert.strictEqual(updated.seasons[0].status, MediaStatus.UNKNOWN);
-    assert.strictEqual(updated.seasons[0].status4k, MediaStatus.PROCESSING);
   });
 });

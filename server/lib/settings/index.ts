@@ -63,7 +63,6 @@ export interface DVRSettings {
   activeProfileName: string;
   activeDirectory: string;
   tags: number[];
-  is4k: boolean;
   isDefault: boolean;
   externalUrl?: string;
   syncEnabled: boolean;
@@ -198,8 +197,6 @@ interface FullPublicSettings extends PublicSettings {
   hideRequested: boolean;
   localLogin: boolean;
   mediaServerLogin: boolean;
-  movie4kEnabled: boolean;
-  series4kEnabled: boolean;
   discoverRegion: string;
   streamingRegion: string;
   originalLanguage: string;
@@ -673,9 +670,6 @@ class Settings {
       mediaServerLogin: this.data.main.mediaServerLogin,
       jellyfinExternalHost: this.data.jellyfin.externalHostname,
       jellyfinForgotPasswordUrl: this.data.jellyfin.jellyfinForgotPasswordUrl,
-      // ponytail: 4K is gone; fields stay until the client stops reading them.
-      movie4kEnabled: false,
-      series4kEnabled: false,
       discoverRegion: this.data.main.discoverRegion,
       streamingRegion: this.data.main.streamingRegion,
       originalLanguage: this.data.main.originalLanguage,

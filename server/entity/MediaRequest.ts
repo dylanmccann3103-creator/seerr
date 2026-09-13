@@ -158,7 +158,6 @@ export class MediaRequest {
         tpdbId,
         mediaType: type,
         status: MediaStatus.PENDING,
-        status4k: MediaStatus.UNKNOWN,
       });
     } else {
       if (media.status === MediaStatus.BLOCKLISTED) {
@@ -190,7 +189,6 @@ export class MediaRequest {
       media,
       requestedBy: requestUser,
       modifiedBy: autoApprove ? user : undefined,
-      is4k: false,
       profileId: requestBody.profileId,
       rootFolder: requestBody.rootFolder,
       tags: requestBody.tags,
@@ -312,9 +310,6 @@ export class MediaRequest {
   })
   public seasons: SeasonRequest[];
 
-  @Column({ default: false })
-  public is4k: boolean;
-
   @Column({ nullable: true })
   public serverId: number;
 
@@ -429,7 +424,7 @@ export class MediaRequest {
 
       if (
         this.status === MediaRequestStatus.APPROVED &&
-        media[this.is4k ? 'status4k' : 'status'] === MediaStatus.AVAILABLE
+        media.status === MediaStatus.AVAILABLE
       ) {
         logger.info(
           'Media is already available. Sending availability notification instead of approval.',
@@ -501,34 +496,30 @@ export class MediaRequest {
 
       switch (type) {
         case Notification.MEDIA_AVAILABLE:
-          event = `${entity.is4k ? '4K ' : ''}${mediaType} Now Available`;
+          event = `${mediaType} Now Available`;
           notifyAdmin = false;
           break;
         case Notification.MEDIA_APPROVED:
-          event = `${entity.is4k ? '4K ' : ''}${mediaType} Request Approved`;
+          event = `${mediaType} Request Approved`;
           notifyAdmin = false;
           break;
         case Notification.MEDIA_DECLINED:
-          event = `${entity.is4k ? '4K ' : ''}${mediaType} Request Declined`;
+          event = `${mediaType} Request Declined`;
           notifyAdmin = false;
           break;
         case Notification.MEDIA_PENDING:
-          event = `New ${entity.is4k ? '4K ' : ''}${mediaType} Request`;
+          event = `New ${mediaType} Request`;
           break;
         case Notification.MEDIA_AUTO_REQUESTED:
-          event = `${
-            entity.is4k ? '4K ' : ''
-          }${mediaType} Request Automatically Submitted`;
+          event = `${mediaType} Request Automatically Submitted`;
           notifyAdmin = false;
           notifySystem = false;
           break;
         case Notification.MEDIA_AUTO_APPROVED:
-          event = `${
-            entity.is4k ? '4K ' : ''
-          }${mediaType} Request Automatically Approved`;
+          event = `${mediaType} Request Automatically Approved`;
           break;
         case Notification.MEDIA_FAILED:
-          event = `${entity.is4k ? '4K ' : ''}${mediaType} Request Failed`;
+          event = `${mediaType} Request Failed`;
           break;
       }
 

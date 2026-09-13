@@ -16,15 +16,14 @@ import type { NotificationAgent, NotificationPayload } from './agent';
 import { BaseAgent } from './agent';
 
 const messages = defineMessages('notifications.agents.webpush', {
-  autoRequested: 'Automatically submitted a new {quality}{mediaType} request.',
-  approved: 'Your {quality}{mediaType} request has been approved.',
+  autoRequested: 'Automatically submitted a new {mediaType} request.',
+  approved: 'Your {mediaType} request has been approved.',
   autoApproved:
-    'Automatically approved a new {quality}{mediaType} request from {userName}.',
-  available: 'Your {quality}{mediaType} request is now available!',
-  declined: 'Your {quality}{mediaType} request was declined.',
-  failed: 'Failed to process {quality}{mediaType} request.',
-  pending:
-    'Approval required for a new {quality}{mediaType} request from {userName}.',
+    'Automatically approved a new {mediaType} request from {userName}.',
+  available: 'Your {mediaType} request is now available!',
+  declined: 'Your {mediaType} request was declined.',
+  failed: 'Failed to process {mediaType} request.',
+  pending: 'Approval required for a new {mediaType} request from {userName}.',
   issueCreated: 'A new {issueType} was reported by {userName}.',
   issueComment: '{userName} commented on the {issueType}.',
   issueResolved: 'The {issueType} was marked as resolved by {userName}!',
@@ -81,8 +80,6 @@ class WebPushAgent
         ? intl.formatMessage(globalMessages.movie)
         : intl.formatMessage(globalMessages.series)
       : undefined;
-    const is4k = payload.request?.is4k;
-    const quality = is4k ? '4K ' : '';
 
     const issueType = payload.issue
       ? payload.issue.issueType !== IssueType.OTHER
@@ -99,44 +96,37 @@ class WebPushAgent
         break;
       case Notification.MEDIA_AUTO_REQUESTED:
         message = intl.formatMessage(messages.autoRequested, {
-          quality,
           mediaType,
         });
         break;
       case Notification.MEDIA_APPROVED:
         message = intl.formatMessage(messages.approved, {
-          quality,
           mediaType,
         });
         break;
       case Notification.MEDIA_AUTO_APPROVED:
         message = intl.formatMessage(messages.autoApproved, {
-          quality,
           mediaType,
           userName: payload.request?.requestedBy.displayName,
         });
         break;
       case Notification.MEDIA_AVAILABLE:
         message = intl.formatMessage(messages.available, {
-          quality,
           mediaType,
         });
         break;
       case Notification.MEDIA_DECLINED:
         message = intl.formatMessage(messages.declined, {
-          quality,
           mediaType,
         });
         break;
       case Notification.MEDIA_FAILED:
         message = intl.formatMessage(messages.failed, {
-          quality,
           mediaType,
         });
         break;
       case Notification.MEDIA_PENDING:
         message = intl.formatMessage(messages.pending, {
-          quality,
           mediaType,
           userName: payload.request?.requestedBy.displayName,
         });

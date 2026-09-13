@@ -90,9 +90,7 @@ const RequestItemError = ({
   const plexUrl = requestData?.media?.mediaUrl;
 
   const requestDownloadStatus = getRequestDownloadStatus(
-    requestData?.media?.[
-      requestData?.is4k ? 'downloadStatus4k' : 'downloadStatus'
-    ],
+    requestData?.media?.downloadStatus,
     requestData?.type === 'tv'
       ? (requestData?.seasons ?? []).map((season) => season.seasonNumber)
       : []
@@ -146,15 +144,10 @@ const RequestItemError = ({
                   </Badge>
                 ) : (
                   <StatusBadge
-                    status={
-                      requestData.media[
-                        requestData.is4k ? 'status4k' : 'status'
-                      ]
-                    }
+                    status={requestData.media.status}
                     downloadItem={requestDownloadStatus}
                     title={intl.formatMessage(messages.unknowntitle)}
                     inProgress={requestDownloadStatus.length > 0}
-                    is4k={requestData.is4k}
                     mediaType={requestType(requestData)}
                     plexUrl={plexUrl}
                   />
@@ -307,7 +300,6 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
     refreshInterval: refreshIntervalHelper(
       {
         downloadStatus: request.media.downloadStatus,
-        downloadStatus4k: request.media.downloadStatus4k,
       },
       15000
     ),
@@ -345,9 +337,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
   const deleteMediaFile = async () => {
     if (request.media) {
       try {
-        await axios.delete(
-          `/api/v1/media/${request.media.id}/file?is4k=${request.is4k}`
-        );
+        await axios.delete(`/api/v1/media/${request.media.id}/file`);
       } catch (e) {
         if (!axios.isAxiosError(e) || e.response?.status !== 404) {
           addToast(intl.formatMessage(messages.removemediaerror), {
@@ -399,7 +389,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
   }
 
   const requestDownloadStatus = getRequestDownloadStatus(
-    requestData.media[requestData.is4k ? 'downloadStatus4k' : 'downloadStatus'],
+    requestData.media.downloadStatus,
     isSeasonalRequest(requestData.type)
       ? requestData.seasons.map((season) => season.seasonNumber)
       : []
@@ -508,8 +498,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
                   {intl.formatMessage(globalMessages.failed)}
                 </Badge>
               ) : requestData.status === MediaRequestStatus.PENDING &&
-                requestData.media[requestData.is4k ? 'status4k' : 'status'] ===
-                  MediaStatus.DELETED ? (
+                requestData.media.status === MediaStatus.DELETED ? (
                 <Badge
                   badgeType="warning"
                   href={`${requestLink(requestData)}?manage=1`}
@@ -518,13 +507,10 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
                 </Badge>
               ) : (
                 <StatusBadge
-                  status={
-                    requestData.media[requestData.is4k ? 'status4k' : 'status']
-                  }
+                  status={requestData.media.status}
                   downloadItem={requestDownloadStatus}
                   title={title.name}
                   inProgress={requestDownloadStatus.length > 0}
-                  is4k={requestData.is4k}
                   tmdbId={requestMediaId(requestData)}
                   mediaType={requestType(requestData)}
                   plexUrl={plexUrl}

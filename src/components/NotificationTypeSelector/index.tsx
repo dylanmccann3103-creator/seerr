@@ -1,5 +1,4 @@
 import NotificationType from '@app/components/NotificationTypeSelector/NotificationType';
-import useSettings from '@app/hooks/useSettings';
 import type { User } from '@app/hooks/useUser';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
@@ -135,7 +134,6 @@ const NotificationTypeSelector = ({
   error,
 }: NotificationTypeSelectorProps) => {
   const intl = useIntl();
-  const settings = useSettings();
   const { hasPermission } = useUser({ id: user?.id });
   const [allowedTypes, setAllowedTypes] = useState(enabledTypes);
 
@@ -146,17 +144,10 @@ const NotificationTypeSelector = ({
       (hasPermission(Permission.MANAGE_REQUESTS) ||
         // Cannot submit requests of any type
         !hasPermission(
-          [
-            Permission.REQUEST,
-            Permission.REQUEST_MOVIE,
-            Permission.REQUEST_TV,
-            Permission.REQUEST_4K,
-            Permission.REQUEST_4K_MOVIE,
-            Permission.REQUEST_4K_TV,
-          ],
+          [Permission.REQUEST, Permission.REQUEST_MOVIE, Permission.REQUEST_TV],
           { type: 'or' }
         ) ||
-        // Cannot submit non-4K movie requests OR has Auto-Approve perms for non-4K movies
+        // Cannot submit movie requests OR has Auto-Approve perms for movies
         ((!hasPermission([Permission.REQUEST, Permission.REQUEST_MOVIE], {
           type: 'or',
         }) ||
@@ -164,31 +155,12 @@ const NotificationTypeSelector = ({
             [Permission.AUTO_APPROVE, Permission.AUTO_APPROVE_MOVIE],
             { type: 'or' }
           )) &&
-          // Cannot submit non-4K series requests OR has Auto-Approve perms for non-4K series
+          // Cannot submit series requests OR has Auto-Approve perms for series
           (!hasPermission([Permission.REQUEST, Permission.REQUEST_TV], {
             type: 'or',
           }) ||
             hasPermission(
               [Permission.AUTO_APPROVE, Permission.AUTO_APPROVE_TV],
-              { type: 'or' }
-            )) &&
-          // Cannot submit 4K movie requests OR has Auto-Approve perms for 4K movies
-          (!settings.currentSettings.movie4kEnabled ||
-            !hasPermission(
-              [Permission.REQUEST_4K, Permission.REQUEST_4K_MOVIE],
-              { type: 'or' }
-            ) ||
-            hasPermission(
-              [Permission.AUTO_APPROVE_4K, Permission.AUTO_APPROVE_4K_MOVIE],
-              { type: 'or' }
-            )) &&
-          // Cannot submit 4K series requests OR has Auto-Approve perms for 4K series
-          (!settings.currentSettings.series4kEnabled ||
-            !hasPermission([Permission.REQUEST_4K, Permission.REQUEST_4K_TV], {
-              type: 'or',
-            }) ||
-            hasPermission(
-              [Permission.AUTO_APPROVE_4K, Permission.AUTO_APPROVE_4K_TV],
               { type: 'or' }
             ))));
 
@@ -347,7 +319,7 @@ const NotificationTypeSelector = ({
     return user
       ? sortBy(filteredTypes, 'hasNotifyUser', 'DESC')
       : filteredTypes;
-  }, [user, hasPermission, settings, intl, allowedTypes, enabledTypes]);
+  }, [user, hasPermission, intl, allowedTypes, enabledTypes]);
 
   if (!availableTypes.length) {
     return null;
