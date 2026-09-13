@@ -1,28 +1,22 @@
 import type { MediaRequest } from '@server/entity/MediaRequest';
 import type { NonFunctionProperties } from '@server/interfaces/api/common';
-import type { MovieDetails } from '@server/models/Movie';
 import type { SceneDetails } from '@server/models/Scene';
 import type { SiteDetails } from '@server/models/Site';
-import type { TvDetails } from '@server/models/Tv';
 import useSWR from 'swr';
 
-// One normalized "what is this request about" for RequestCard/RequestItem so
-// they stop branching on movie/tv/scene/site everywhere.
+// One normalized "what is this request about" for RequestCard/RequestItem.
 
-export type RequestType = 'movie' | 'tv' | 'scene' | 'site';
+export type RequestType = 'scene' | 'site';
 type AnyRequest = Pick<NonFunctionProperties<MediaRequest>, 'type' | 'media'>;
 
 export const requestType = (request: AnyRequest): RequestType =>
   request.type as RequestType;
 
-export const isSeasonalRequest = (type: string): boolean =>
-  type === 'tv' || type === 'site';
+export const isSeasonalRequest = (type: string): boolean => type === 'site';
 
 // Scene/site rows are keyed on tpdbId (tmdbId is 0 for them).
 export const requestMediaId = (request: AnyRequest): number =>
-  request.type === 'scene' || request.type === 'site'
-    ? Number(request.media.tpdbId)
-    : request.media.tmdbId;
+  Number(request.media.tpdbId);
 
 export const requestLink = (request: AnyRequest): string =>
   `/${request.type}/${requestMediaId(request)}`;
@@ -33,75 +27,35 @@ export interface RequestTitle {
   posterUrl?: string;
   backdropUrl?: string;
   link: string;
-  imageType: 'tmdb' | 'tpdb';
+  imageType: 'tpdb';
 }
 
-type Details = MovieDetails | TvDetails | SceneDetails | SiteDetails;
+export type RequestDetails = SceneDetails | SiteDetails;
 
 const useRequestTitle = (request: AnyRequest, enabled = true) => {
-  const { data, error } = useSWR<Details>(
+  const { data, error } = useSWR<RequestDetails>(
     enabled ? `/api/v1/${request.type}/${requestMediaId(request)}` : null
   );
 
   let title: RequestTitle | undefined;
   if (data) {
     const link = requestLink(request);
-    switch (requestType(request)) {
-      case 'movie': {
-        const m = data as MovieDetails;
-        title = {
-          name: m.title,
-          year: m.releaseDate,
-          posterUrl: m.posterPath
-            ? `https://image.tmdb.org/t/p/w600_and_h900_bestv2${m.posterPath}`
-            : undefined,
-          backdropUrl: m.backdropPath
-            ? `https://image.tmdb.org/t/p/w1920_and_h800_multi_faces/${m.backdropPath}`
-            : undefined,
-          link,
-          imageType: 'tmdb',
-        };
-        break;
-      }
-      case 'tv': {
-        const t = data as TvDetails;
-        title = {
-          name: t.name,
-          year: t.firstAirDate,
-          posterUrl: t.posterPath
-            ? `https://image.tmdb.org/t/p/w600_and_h900_bestv2${t.posterPath}`
-            : undefined,
-          backdropUrl: t.backdropPath
-            ? `https://image.tmdb.org/t/p/w1920_and_h800_multi_faces/${t.backdropPath}`
-            : undefined,
-          link,
-          imageType: 'tmdb',
-        };
-        break;
-      }
-      case 'scene': {
-        const s = data as SceneDetails;
-        title = {
-          name: s.title,
-          year: s.releaseDate,
-          posterUrl: s.posterPath,
-          backdropUrl: s.backdropPath,
-          link,
-          imageType: 'tpdb',
-        };
-        break;
-      }
-      case 'site': {
-        const s = data as SiteDetails;
-        title = {
-          name: s.name,
-          posterUrl: s.posterPath,
-          link,
-          imageType: 'tpdb',
-        };
-        break;
-      }
-    }
+    title =
+      'title' in data
+        ? {
+            name: data.title,
+            year: data.releaseDate,
+            posterUrl: data.posterPath,
+            backdropUrl: data.backdropPath,
+            link,
+            imageType: 'tpdb',
+          }
+        : {
+            name: data.name,
+            posterUrl: data.posterPath,
+            link,
+            imageType: 'tpdb',
+          };
   }
 
   return { title, error, data };

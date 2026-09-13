@@ -9,35 +9,22 @@ import { mutate } from 'swr';
 
 interface ErrorCardProps {
   id: number;
-  tmdbId: number;
-  tvdbId?: number;
-  type: 'movie' | 'tv';
+  tpdbId: number;
+  type: 'scene' | 'site';
   canExpand?: boolean;
 }
 
 const messages = defineMessages('components.TitleCard', {
   mediaerror: '{mediaType} Not Found',
-  tmdbid: 'TMDB ID',
-  tvdbid: 'TheTVDB ID',
+  tpdbid: 'TPDB ID',
   cleardata: 'Clear Data',
 });
 
-const ErrorCard = ({ id, tmdbId, tvdbId, type, canExpand }: ErrorCardProps) => {
+const ErrorCard = ({ id, tpdbId, type, canExpand }: ErrorCardProps) => {
   const intl = useIntl();
   const { addToast } = useToasts();
 
   const deleteMedia = async () => {
-    try {
-      await axios.delete(`/api/v1/watchlist/${tmdbId}?mediaType=${type}`);
-    } catch (e) {
-      if (!axios.isAxiosError(e) || e.response?.status !== 404) {
-        addToast(intl.formatMessage(globalMessages.error), {
-          appearance: 'error',
-          autoDismiss: true,
-        });
-        return;
-      }
-    }
     await axios.delete(`/api/v1/media/${id}`).catch((e) => {
       if (axios.isAxiosError(e) && e.response?.status === 404) return;
       addToast(intl.formatMessage(globalMessages.error), {
@@ -45,7 +32,6 @@ const ErrorCard = ({ id, tmdbId, tvdbId, type, canExpand }: ErrorCardProps) => {
         autoDismiss: true,
       });
     });
-    mutate('/api/v1/discover/watchlist');
     mutate('/api/v1/media?filter=allavailable&take=20&sort=mediaAdded');
     mutate('/api/v1/request?filter=all&take=10&sort=modified&skip=0');
   };
@@ -65,13 +51,13 @@ const ErrorCard = ({ id, tmdbId, tvdbId, type, canExpand }: ErrorCardProps) => {
           <div className="absolute left-0 right-0 flex items-center justify-between p-2">
             <div
               className={`pointer-events-none z-40 rounded-full shadow ${
-                type === 'movie' ? 'bg-blue-500' : 'bg-purple-600'
+                type === 'scene' ? 'bg-pink-600' : 'bg-emerald-600'
               }`}
             >
               <div className="flex h-4 items-center px-2 py-2 text-center text-xs font-medium uppercase tracking-wider text-white sm:h-5">
-                {type === 'movie'
-                  ? intl.formatMessage(globalMessages.movie)
-                  : intl.formatMessage(globalMessages.tvshow)}
+                {intl.formatMessage(
+                  type === 'scene' ? globalMessages.scene : globalMessages.site
+                )}
               </div>
             </div>
             <div className="pointer-events-none z-40">
@@ -96,9 +82,9 @@ const ErrorCard = ({ id, tmdbId, tvdbId, type, canExpand }: ErrorCardProps) => {
               >
                 {intl.formatMessage(messages.mediaerror, {
                   mediaType: intl.formatMessage(
-                    type === 'movie'
-                      ? globalMessages.movie
-                      : globalMessages.tvshow
+                    type === 'scene'
+                      ? globalMessages.scene
+                      : globalMessages.site
                   ),
                 })}
               </h1>
@@ -114,18 +100,10 @@ const ErrorCard = ({ id, tmdbId, tvdbId, type, canExpand }: ErrorCardProps) => {
               >
                 <div className="flex items-center">
                   <span className="mr-2 font-bold text-gray-400">
-                    {intl.formatMessage(messages.tmdbid)}
+                    {intl.formatMessage(messages.tpdbid)}
                   </span>
-                  {tmdbId}
+                  {tpdbId}
                 </div>
-                {!!tvdbId && (
-                  <div className="mt-2 flex items-center sm:mt-1">
-                    <span className="mr-2 font-bold text-gray-400">
-                      {intl.formatMessage(messages.tvdbid)}
-                    </span>
-                    {tvdbId}
-                  </div>
-                )}
               </div>
             </div>
           </div>

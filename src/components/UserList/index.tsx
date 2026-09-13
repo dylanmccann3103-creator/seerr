@@ -9,7 +9,6 @@ import PageTitle from '@app/components/Common/PageTitle';
 import SensitiveInput from '@app/components/Common/SensitiveInput';
 import Table from '@app/components/Common/Table';
 import BulkEditModal from '@app/components/UserList/BulkEditModal';
-import PlexImportModal from '@app/components/UserList/PlexImportModal';
 import useDebouncedState from '@app/hooks/useDebouncedState';
 import useSettings from '@app/hooks/useSettings';
 import useToasts from '@app/hooks/useToasts';
@@ -31,7 +30,6 @@ import {
   PencilIcon,
   UserPlusIcon,
 } from '@heroicons/react/24/solid';
-import { MediaServerType } from '@server/constants/server';
 import type { UserResultsResponse } from '@server/interfaces/api/userInterfaces';
 import { hasPermission } from '@server/lib/permissions';
 import axios from 'axios';
@@ -622,25 +620,15 @@ const UserList = () => {
         leaveTo="opacity-0"
         show={showImportModal}
       >
-        {settings.currentSettings.mediaServerType === MediaServerType.PLEX ? (
-          <PlexImportModal
-            onCancel={() => setShowImportModal(false)}
-            onComplete={() => {
-              setShowImportModal(false);
-              revalidate();
-            }}
-          />
-        ) : (
-          <JellyfinImportModal
-            onCancel={() => setShowImportModal(false)}
-            onComplete={() => {
-              setShowImportModal(false);
-              revalidate();
-            }}
-          >
-            {data.pageInfo.results}
-          </JellyfinImportModal>
-        )}
+        <JellyfinImportModal
+          onCancel={() => setShowImportModal(false)}
+          onComplete={() => {
+            setShowImportModal(false);
+            revalidate();
+          }}
+        >
+          {data.pageInfo.results}
+        </JellyfinImportModal>
       </Transition>
 
       <div className="flex flex-col justify-between lg:flex-row lg:items-end">
@@ -662,19 +650,9 @@ const UserList = () => {
             >
               <InboxArrowDownIcon />
               <span>
-                {settings.currentSettings.mediaServerType ===
-                MediaServerType.EMBY
-                  ? intl.formatMessage(messages.importfrommediaserver, {
-                      mediaServerName: 'Emby',
-                    })
-                  : settings.currentSettings.mediaServerType ===
-                      MediaServerType.PLEX
-                    ? intl.formatMessage(messages.importfrommediaserver, {
-                        mediaServerName: 'Plex',
-                      })
-                    : intl.formatMessage(messages.importfrommediaserver, {
-                        mediaServerName: 'Jellyfin',
-                      })}
+                {intl.formatMessage(messages.importfrommediaserver, {
+                  mediaServerName: 'Jellyfin',
+                })}
               </span>
             </Button>
           </div>

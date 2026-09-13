@@ -1,17 +1,15 @@
 import Button from '@app/components/Common/Button';
 import Modal from '@app/components/Common/Modal';
 import { issueOptions } from '@app/components/IssueModal/constants';
-import useSettings from '@app/hooks/useSettings';
 import useToasts from '@app/hooks/useToasts';
-import { Permission, useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
 import { Label, Radio, RadioGroup } from '@headlessui/react';
 import { ArrowRightCircleIcon } from '@heroicons/react/24/solid';
 import { MediaStatus } from '@server/constants/media';
 import type Issue from '@server/entity/Issue';
-import type { MovieDetails } from '@server/models/Movie';
-import type { TvDetails } from '@server/models/Tv';
+import type { SceneDetails } from '@server/models/Scene';
+import type { SiteDetails } from '@server/models/Site';
 import axios from 'axios';
 import { Field, Formik } from 'formik';
 import Link from 'next/link';
@@ -24,13 +22,8 @@ const messages = defineMessages('components.IssueModal.CreateIssueModal', {
   whatswrong: "What's wrong?",
   providedetail:
     'Please provide a detailed explanation of the issue you encountered.',
-  extras: 'Extras',
-  season: 'Season {seasonNumber}',
-  episode: 'Episode {episodeNumber}',
-  allseasons: 'All Seasons',
-  allepisodes: 'All Episodes',
-  problemseason: 'Affected Season',
-  problemepisode: 'Affected Episode',
+  allseasons: 'All Years',
+  problemseason: 'Affected Year',
   toastSuccessCreate:
     'Issue report for <strong>{title}</strong> submitted successfully!',
   toastFailedCreate: 'Something went wrong while submitting the issue.',
@@ -39,16 +32,13 @@ const messages = defineMessages('components.IssueModal.CreateIssueModal', {
   submitissue: 'Submit Issue',
 });
 
-const isMovie = (movie: MovieDetails | TvDetails): movie is MovieDetails => {
-  return (movie as MovieDetails).title !== undefined;
-};
-
 const classNames = (...classes: string[]) => {
   return classes.filter(Boolean).join(' ');
 };
 
 interface CreateIssueModalProps {
-  mediaType: 'movie' | 'tv';
+  mediaType: 'scene' | 'site';
+  /** TPDB id */
   tmdbId?: number;
   onCancel?: () => void;
 }
@@ -59,10 +49,8 @@ const CreateIssueModal = ({
   tmdbId,
 }: CreateIssueModalProps) => {
   const intl = useIntl();
-  const settings = useSettings();
-  const { hasPermission } = useUser();
   const { addToast } = useToasts();
-  const { data, error } = useSWR<MovieDetails | TvDetails>(
+  const { data, error } = useSWR<SceneDetails | SiteDetails>(
     tmdbId ? `/api/v1/${mediaType}/${tmdbId}` : null
   );
 
@@ -74,13 +62,7 @@ const CreateIssueModal = ({
     .filter(
       (season) =>
         season.status === MediaStatus.AVAILABLE ||
-        season.status === MediaStatus.PARTIALLY_AVAILABLE ||
-        (settings.currentSettings.series4kEnabled &&
-          hasPermission([Permission.REQUEST_4K, Permission.REQUEST_4K_TV], {
-            type: 'or',
-          }) &&
-          (season.status4k === MediaStatus.AVAILABLE ||
-            season.status4k === MediaStatus.PARTIALLY_AVAILABLE))
+        season.status === MediaStatus.PARTIALLY_AVAILABLE
     )
     .map((season) => season.seasonNumber);
 
@@ -96,7 +78,6 @@ const CreateIssueModal = ({
         selectedIssue: issueOptions[0],
         message: '',
         problemSeason: availableSeasons.length === 1 ? availableSeasons[0] : 0,
-        problemEpisode: 0,
       }}
       validationSchema={CreateIssueModalSchema}
       onSubmit={async (values) => {
@@ -106,8 +87,7 @@ const CreateIssueModal = ({
             message: values.message,
             mediaId: data?.mediaInfo?.id,
             problemSeason: values.problemSeason,
-            problemEpisode:
-              values.problemSeason > 0 ? values.problemEpisode : 0,
+            problemEpisode: 0,
           });
 
           if (data) {
@@ -115,7 +95,7 @@ const CreateIssueModal = ({
               <>
                 <div>
                   {intl.formatMessage(messages.toastSuccessCreate, {
-                    title: isMovie(data) ? data.title : data.name,
+                    title: 'title' in data ? data.title : data.name,
                     strong: (msg: React.ReactNode) => <strong>{msg}</strong>,
                   })}
                 </div>
@@ -152,14 +132,16 @@ const CreateIssueModal = ({
             backgroundClickable
             onCancel={onCancel}
             title={intl.formatMessage(messages.reportissue)}
-            subTitle={data && isMovie(data) ? data?.title : data?.name}
+            subTitle={data && 'title' in data ? data.title : data?.name}
             cancelText={intl.formatMessage(globalMessages.close)}
             onOk={() => handleSubmit()}
             okText={intl.formatMessage(messages.submitissue)}
             loading={!data && !error}
-            backdrop={`https://image.tmdb.org/t/p/w1920_and_h800_multi_faces/${data?.backdropPath}`}
+            backdrop={
+              data && 'backdropPath' in data ? data.backdropPath : undefined
+            }
           >
-            {mediaType === 'tv' && data && !isMovie(data) && (
+            {mediaType === 'site' && data && (
               <>
                 <div className="form-row">
                   <label htmlFor="problemSeason" className="text-label">
@@ -184,56 +166,13 @@ const CreateIssueModal = ({
                             value={season}
                             key={`problem-season-${season}`}
                           >
-                            {season === 0
-                              ? intl.formatMessage(messages.extras)
-                              : intl.formatMessage(messages.season, {
-                                  seasonNumber: season,
-                                })}
+                            {season}
                           </option>
                         ))}
                       </Field>
                     </div>
                   </div>
                 </div>
-                {values.problemSeason > 0 && (
-                  <div className="form-row mb-2">
-                    <label htmlFor="problemEpisode" className="text-label">
-                      {intl.formatMessage(messages.problemepisode)}
-                      <span className="label-required">*</span>
-                    </label>
-                    <div className="form-input-area">
-                      <div className="form-input-field">
-                        <Field
-                          as="select"
-                          id="problemEpisode"
-                          name="problemEpisode"
-                        >
-                          <option value={0}>
-                            {intl.formatMessage(messages.allepisodes)}
-                          </option>
-                          {[
-                            ...Array(
-                              data.seasons.find(
-                                (season) =>
-                                  Number(values.problemSeason) ===
-                                  season.seasonNumber
-                              )?.episodeCount ?? 0
-                            ),
-                          ].map((i, index) => (
-                            <option
-                              value={index + 1}
-                              key={`problem-episode-${index + 1}`}
-                            >
-                              {intl.formatMessage(messages.episode, {
-                                episodeNumber: index + 1,
-                              })}
-                            </option>
-                          ))}
-                        </Field>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </>
             )}
             <RadioGroup

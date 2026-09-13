@@ -4,20 +4,16 @@ import PageTitle from '@app/components/Common/PageTitle';
 import ProgressCircle from '@app/components/Common/ProgressCircle';
 import RequestCard from '@app/components/RequestCard';
 import Slider from '@app/components/Slider';
-import TmdbTitleCard from '@app/components/TitleCard/TmdbTitleCard';
 import ProfileHeader from '@app/components/UserProfile/ProfileHeader';
-import { Permission, UserType, useUser } from '@app/hooks/useUser';
+import type { RequestDetails } from '@app/hooks/useRequestTitle';
+import { Permission, useUser } from '@app/hooks/useUser';
 import ErrorPage from '@app/pages/_error';
 import defineMessages from '@app/utils/defineMessages';
 import { ArrowRightCircleIcon } from '@heroicons/react/24/outline';
-import type { WatchlistResponse } from '@server/interfaces/api/discoverInterfaces';
 import type {
   QuotaResponse,
   UserRequestsResponse,
-  UserWatchDataResponse,
 } from '@server/interfaces/api/userInterfaces';
-import type { MovieDetails } from '@server/models/Movie';
-import type { TvDetails } from '@server/models/Tv';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useCallback, useEffect, useState } from 'react';
@@ -33,14 +29,7 @@ const messages = defineMessages('components.UserProfile', {
   pastdays: '{type} (past {days} days)',
   movierequests: 'Movie Requests',
   seriesrequest: 'Series Requests',
-  recentlywatched: 'Recently Watched',
-  plexwatchlist: 'Plex Watchlist',
-  localWatchlist: "{username}'s Watchlist",
-  emptywatchlist:
-    'Media added to your <PlexWatchlistSupportLink>Plex Watchlist</PlexWatchlistSupportLink> will appear here.',
 });
-
-type MediaTitle = MovieDetails | TvDetails;
 
 const UserProfile = () => {
   const intl = useIntl();
@@ -50,7 +39,7 @@ const UserProfile = () => {
   });
   const { user: currentUser, hasPermission: currentHasPermission } = useUser();
   const [availableTitles, setAvailableTitles] = useState<
-    Record<number, MediaTitle>
+    Record<number, RequestDetails>
   >({});
 
   const { data: requests, error: requestError } = useSWR<UserRequestsResponse>(
@@ -73,32 +62,8 @@ const UserProfile = () => {
       ? `/api/v1/user/${user.id}/quota`
       : null
   );
-  const { data: watchData, error: watchDataError } =
-    useSWR<UserWatchDataResponse>(
-      user?.userType === UserType.PLEX &&
-        (user.id === currentUser?.id || currentHasPermission(Permission.ADMIN))
-        ? `/api/v1/user/${user.id}/watch_data`
-        : null
-    );
-
-  const { data: watchlistItems, error: watchlistError } =
-    useSWR<WatchlistResponse>(
-      user?.id === currentUser?.id ||
-        currentHasPermission(
-          [Permission.MANAGE_REQUESTS, Permission.WATCHLIST_VIEW],
-          {
-            type: 'or',
-          }
-        )
-        ? `/api/v1/user/${user?.id}/watchlist`
-        : null,
-      {
-        revalidateOnMount: true,
-      }
-    );
-
   const updateAvailableTitles = useCallback(
-    (requestId: number, mediaTitle: MediaTitle) => {
+    (requestId: number, mediaTitle: RequestDetails) => {
       setAvailableTitles((titles) => ({
         ...titles,
         [requestId]: mediaTitle,
@@ -119,13 +84,6 @@ const UserProfile = () => {
     return <ErrorPage statusCode={404} />;
   }
 
-  const watchlistSliderTitle = intl.formatMessage(
-    user.userType === UserType.PLEX
-      ? messages.plexwatchlist
-      : messages.localWatchlist,
-    { username: user.displayName }
-  );
-
   return (
     <>
       <PageTitle title={user.displayName} />
@@ -135,11 +93,10 @@ const UserProfile = () => {
             key={user.id}
             isDarker
             backgroundImages={Object.values(availableTitles)
-              .filter((media) => media.backdropPath)
-              .map(
-                (media) =>
-                  `https://image.tmdb.org/t/p/w1920_and_h800_multi_faces/${media.backdropPath}`
+              .map((media) =>
+                'backdropPath' in media ? media.backdropPath : undefined
               )
+              .filter((url): url is string => !!url)
               .slice(0, 6)}
           />
         </div>
@@ -320,84 +277,6 @@ const UserProfile = () => {
                 />
               ))}
               placeholder={<RequestCard.Placeholder />}
-            />
-          </>
-        )}
-      {(user.id === currentUser?.id ||
-        currentHasPermission(
-          [Permission.MANAGE_REQUESTS, Permission.WATCHLIST_VIEW],
-          { type: 'or' }
-        )) &&
-        (!watchlistItems ||
-          !!watchlistItems.results.length ||
-          (user.id === currentUser?.id &&
-            (user.settings?.watchlistSyncMovies ||
-              user.settings?.watchlistSyncTv))) &&
-        !watchlistError && (
-          <>
-            <div className="slider-header">
-              <Link
-                href={
-                  user.id === currentUser?.id
-                    ? '/profile/watchlist'
-                    : `/users/${user.id}/watchlist`
-                }
-                className="slider-title"
-              >
-                <span>{watchlistSliderTitle}</span>
-                <ArrowRightCircleIcon />
-              </Link>
-            </div>
-            <Slider
-              sliderKey="watchlist"
-              isLoading={!watchlistItems}
-              isEmpty={!!watchlistItems && watchlistItems.results.length === 0}
-              emptyMessage={intl.formatMessage(messages.emptywatchlist, {
-                PlexWatchlistSupportLink: (msg: React.ReactNode) => (
-                  <a
-                    href="https://support.plex.tv/articles/universal-watchlist/"
-                    className="text-white transition duration-300 hover:underline"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {msg}
-                  </a>
-                ),
-              })}
-              items={watchlistItems?.results.map((item) => (
-                <TmdbTitleCard
-                  id={item.tmdbId}
-                  key={`watchlist-slider-item-${item.ratingKey}`}
-                  tmdbId={item.tmdbId}
-                  type={item.mediaType as 'movie' | 'tv'}
-                />
-              ))}
-            />
-          </>
-        )}
-      {user.userType === UserType.PLEX &&
-        (user.id === currentUser?.id ||
-          currentHasPermission(Permission.ADMIN)) &&
-        (!watchData || !!watchData.recentlyWatched?.length) &&
-        !watchDataError && (
-          <>
-            <div className="slider-header">
-              <div className="slider-title">
-                <span>{intl.formatMessage(messages.recentlywatched)}</span>
-              </div>
-            </div>
-            <Slider
-              sliderKey="media"
-              isLoading={!watchData}
-              items={watchData?.recentlyWatched?.map((item) => (
-                <TmdbTitleCard
-                  key={`media-slider-item-${item.id}`}
-                  id={item.id}
-                  tmdbId={item.tmdbId}
-                  tvdbId={item.tvdbId}
-                  type={item.mediaType as 'movie' | 'tv'}
-                />
-              ))}
             />
           </>
         )}

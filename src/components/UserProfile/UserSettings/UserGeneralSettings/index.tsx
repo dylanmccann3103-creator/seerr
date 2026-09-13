@@ -2,9 +2,7 @@ import Badge from '@app/components/Common/Badge';
 import Button from '@app/components/Common/Button';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import PageTitle from '@app/components/Common/PageTitle';
-import LanguageSelector from '@app/components/LanguageSelector';
 import QuotaSelector from '@app/components/QuotaSelector';
-import RegionSelector from '@app/components/RegionSelector';
 import { availableLanguages } from '@app/context/LanguageContext';
 import useLocale from '@app/hooks/useLocale';
 import useSettings from '@app/hooks/useSettings';
@@ -48,14 +46,6 @@ const messages = defineMessages(
     toastSettingsFailureEmail: 'This email is already taken!',
     toastSettingsFailureEmailEmpty:
       'Another user already has this username. You must set an email',
-    region: 'Discover Region',
-    regionTip: 'Filter content by regional availability',
-    discoverRegion: 'Discover Region',
-    discoverRegionTip: 'Filter content by regional availability',
-    originallanguage: 'Discover Language',
-    originallanguageTip: 'Filter content by original language',
-    streamingRegion: 'Streaming Region',
-    streamingRegionTip: 'Show streaming sites by regional availability',
     movierequestlimit: 'Movie Request Limit',
     seriesrequestlimit: 'Series Request Limit',
     enableOverride: 'Override Global Limit',
@@ -63,12 +53,6 @@ const messages = defineMessages(
     languageDefault: 'Default ({language})',
     validationemailrequired: 'Email required',
     validationemailformat: 'Valid email required',
-    plexwatchlistsyncmovies: 'Auto-Request Movies',
-    plexwatchlistsyncmoviestip:
-      'Automatically request movies on your <PlexWatchlistSupportLink>Plex Watchlist</PlexWatchlistSupportLink>',
-    plexwatchlistsyncseries: 'Auto-Request Series',
-    plexwatchlistsyncseriestip:
-      'Automatically request series on your <PlexWatchlistSupportLink>Plex Watchlist</PlexWatchlistSupportLink>',
   }
 );
 
@@ -152,15 +136,10 @@ const UserGeneralSettings = () => {
           displayName: data?.username !== user?.email ? data?.username : '',
           email: data?.email?.includes('@') ? data.email : '',
           locale: data?.locale,
-          discoverRegion: data?.discoverRegion,
-          streamingRegion: data?.streamingRegion,
-          originalLanguage: data?.originalLanguage,
           movieQuotaLimit: data?.movieQuotaLimit,
           movieQuotaDays: data?.movieQuotaDays,
           tvQuotaLimit: data?.tvQuotaLimit,
           tvQuotaDays: data?.tvQuotaDays,
-          watchlistSyncMovies: data?.watchlistSyncMovies,
-          watchlistSyncTv: data?.watchlistSyncTv,
         }}
         validationSchema={UserGeneralSettingsSchema}
         enableReinitialize
@@ -171,17 +150,12 @@ const UserGeneralSettings = () => {
               email:
                 values.email || user?.jellyfinUsername || user?.plexUsername,
               locale: values.locale,
-              discoverRegion: values.discoverRegion,
-              streamingRegion: values.streamingRegion,
-              originalLanguage: values.originalLanguage,
               movieQuotaLimit: movieQuotaEnabled
                 ? values.movieQuotaLimit
                 : null,
               movieQuotaDays: movieQuotaEnabled ? values.movieQuotaDays : null,
               tvQuotaLimit: tvQuotaEnabled ? values.tvQuotaLimit : null,
               tvQuotaDays: tvQuotaEnabled ? values.tvQuotaDays : null,
-              watchlistSyncMovies: values.watchlistSyncMovies,
-              watchlistSyncTv: values.watchlistSyncTv,
             });
 
             if (currentUser?.id === user?.id && setLocale) {
@@ -362,62 +336,6 @@ const UserGeneralSettings = () => {
                   </div>
                 </div>
               </div>
-              <div className="form-row">
-                <label htmlFor="discoverRegion" className="text-label">
-                  <span>{intl.formatMessage(messages.discoverRegion)}</span>
-                  <span className="label-tip">
-                    {intl.formatMessage(messages.discoverRegionTip)}
-                  </span>
-                </label>
-                <div className="form-input-area">
-                  <div className="form-input-field relative z-[22]">
-                    <RegionSelector
-                      name="discoverRegion"
-                      value={values.discoverRegion ?? ''}
-                      isUserSetting
-                      onChange={setFieldValue}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="form-row">
-                <label htmlFor="originalLanguage" className="text-label">
-                  <span>{intl.formatMessage(messages.originallanguage)}</span>
-                  <span className="label-tip">
-                    {intl.formatMessage(messages.originallanguageTip)}
-                  </span>
-                </label>
-                <div className="form-input-area">
-                  <div className="form-input-field relative z-[21]">
-                    <LanguageSelector
-                      setFieldValue={setFieldValue}
-                      serverValue={currentSettings.originalLanguage}
-                      value={values.originalLanguage}
-                      isUserSettings
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="form-row">
-                <label htmlFor="streamingRegionTip" className="text-label">
-                  <span>{intl.formatMessage(messages.streamingRegion)}</span>
-                  <span className="label-tip">
-                    {intl.formatMessage(messages.streamingRegionTip)}
-                  </span>
-                </label>
-                <div className="form-input-area">
-                  <div className="form-input-field relative z-20">
-                    <RegionSelector
-                      name="streamingRegion"
-                      value={values.streamingRegion || ''}
-                      isUserSetting
-                      onChange={setFieldValue}
-                      regionType="streaming"
-                      disableAll
-                    />
-                  </div>
-                </div>
-              </div>
               {currentHasPermission(Permission.MANAGE_USERS) &&
                 !hasPermission(Permission.MANAGE_USERS) && (
                   <>
@@ -502,99 +420,6 @@ const UserGeneralSettings = () => {
                       </div>
                     </div>
                   </>
-                )}
-              {hasPermission(
-                [Permission.AUTO_REQUEST, Permission.AUTO_REQUEST_MOVIE],
-                { type: 'or' }
-              ) &&
-                user?.userType === UserType.PLEX && (
-                  <div className="form-row">
-                    <label
-                      htmlFor="watchlistSyncMovies"
-                      className="checkbox-label"
-                    >
-                      <span>
-                        {intl.formatMessage(messages.plexwatchlistsyncmovies)}
-                      </span>
-                      <span className="label-tip">
-                        {intl.formatMessage(
-                          messages.plexwatchlistsyncmoviestip,
-                          {
-                            PlexWatchlistSupportLink: (
-                              msg: React.ReactNode
-                            ) => (
-                              <a
-                                href="https://support.plex.tv/articles/universal-watchlist/"
-                                className="text-white transition duration-300 hover:underline"
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                {msg}
-                              </a>
-                            ),
-                          }
-                        )}
-                      </span>
-                    </label>
-                    <div className="form-input-area">
-                      <Field
-                        type="checkbox"
-                        id="watchlistSyncMovies"
-                        name="watchlistSyncMovies"
-                        onChange={() => {
-                          setFieldValue(
-                            'watchlistSyncMovies',
-                            !values.watchlistSyncMovies
-                          );
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-              {hasPermission(
-                [Permission.AUTO_REQUEST, Permission.AUTO_REQUEST_TV],
-                { type: 'or' }
-              ) &&
-                user?.userType === UserType.PLEX && (
-                  <div className="form-row">
-                    <label htmlFor="watchlistSyncTv" className="checkbox-label">
-                      <span>
-                        {intl.formatMessage(messages.plexwatchlistsyncseries)}
-                      </span>
-                      <span className="label-tip">
-                        {intl.formatMessage(
-                          messages.plexwatchlistsyncseriestip,
-                          {
-                            PlexWatchlistSupportLink: (
-                              msg: React.ReactNode
-                            ) => (
-                              <a
-                                href="https://support.plex.tv/articles/universal-watchlist/"
-                                className="text-white transition duration-300 hover:underline"
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                {msg}
-                              </a>
-                            ),
-                          }
-                        )}
-                      </span>
-                    </label>
-                    <div className="form-input-area">
-                      <Field
-                        type="checkbox"
-                        id="watchlistSyncTv"
-                        name="watchlistSyncTv"
-                        onChange={() => {
-                          setFieldValue(
-                            'watchlistSyncTv',
-                            !values.watchlistSyncTv
-                          );
-                        }}
-                      />
-                    </div>
-                  </div>
                 )}
               <div className="actions">
                 <div className="flex justify-end">

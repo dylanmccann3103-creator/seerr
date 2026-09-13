@@ -12,24 +12,21 @@ import {
 import { User } from '@server/entity/User';
 import { setupTestDb } from '@server/test/db';
 
-// get is a prototype method unlike getMovie, and replaces the cache lookup too
+// Stubs Tpdb.getScene (which goes through ExternalAPI.prototype.get).
 const externalApiGetMock = mock.method(
   ExternalAPI.prototype as unknown as {
     get: (endpoint: string) => Promise<unknown>;
   },
   'get',
   async (endpoint: string) => {
-    const movieId = Number(endpoint.replace('/movie/', ''));
+    const sceneId = Number(endpoint.replace('/scenes/', ''));
 
-    if (!movieId) {
+    if (!sceneId) {
       throw new Error(`Unstubbed external endpoint: ${endpoint}`);
     }
 
     return {
-      id: movieId,
-      external_ids: {},
-      // Skips getMovie's localized fallback call
-      videos: { results: [{ type: 'Trailer', key: 'trailer' }] },
+      data: { id: 'uuid', _id: sceneId, title: 'Scene', site_id: 92 },
     };
   }
 ).mock;
@@ -56,10 +53,7 @@ async function seedRequester(movieQuotaLimit: number): Promise<User> {
 function requestMovies(mediaIds: number[], requester: User) {
   return Promise.allSettled(
     mediaIds.map((mediaId) =>
-      MediaRequest.request(
-        { mediaId, mediaType: MediaType.MOVIE, is4k: false },
-        requester
-      )
+      MediaRequest.request({ mediaId, mediaType: MediaType.SCENE }, requester)
     )
   );
 }
@@ -71,7 +65,7 @@ function rejections(results: PromiseSettledResult<MediaRequest>[]) {
 }
 
 describe('MediaRequest.request', () => {
-  it('rejects the second of two concurrent requests at the movie quota', async () => {
+  it('rejects the second of two concurrent requests at the scene quota', async () => {
     const requestRepository = getRepository(MediaRequest);
     const requester = await seedRequester(1);
 
@@ -84,7 +78,7 @@ describe('MediaRequest.request', () => {
     assert.strictEqual(externalApiGetMock.callCount(), 1);
   });
 
-  it('rejects a concurrent duplicate request for the same movie', async () => {
+  it('rejects a concurrent duplicate request for the same scene', async () => {
     const requestRepository = getRepository(MediaRequest);
     const requester = await seedRequester(5);
 

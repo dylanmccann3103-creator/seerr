@@ -1,4 +1,3 @@
-import TheMovieDb from '@server/api/themoviedb';
 import Tpdb from '@server/api/tpdb';
 import { MediaType } from '@server/constants/media';
 import Media from '@server/entity/Media';
@@ -63,52 +62,6 @@ searchRoutes.get('/', async (req, res, next) => {
     return next({
       status: 500,
       message: 'Unable to retrieve search results.',
-    });
-  }
-});
-
-searchRoutes.get('/keyword', async (req, res, next) => {
-  const tmdb = new TheMovieDb();
-
-  try {
-    const results = await tmdb.searchKeyword({
-      query: req.query.query as string,
-      page: Number(req.query.page),
-    });
-
-    return res.status(200).json(results);
-  } catch (e) {
-    logger.debug('Something went wrong retrieving keyword search results', {
-      label: 'API',
-      errorMessage: e.message,
-      query: req.query.query,
-    });
-    return next({
-      status: 500,
-      message: 'Unable to retrieve keyword search results.',
-    });
-  }
-});
-
-searchRoutes.get('/company', async (req, res, next) => {
-  const tmdb = new TheMovieDb();
-
-  try {
-    const results = await tmdb.searchCompany({
-      query: req.query.query as string,
-      page: Number(req.query.page),
-    });
-
-    return res.status(200).json(results);
-  } catch (e) {
-    logger.debug('Something went wrong retrieving company search results', {
-      label: 'API',
-      errorMessage: e.message,
-      query: req.query.query,
-    });
-    return next({
-      status: 500,
-      message: 'Unable to retrieve company search results.',
     });
   }
 });

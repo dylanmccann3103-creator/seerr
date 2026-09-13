@@ -4,7 +4,7 @@ import { Transition } from '@headlessui/react';
 interface IssueModalProps {
   show?: boolean;
   onCancel: () => void;
-  mediaType: 'movie' | 'tv';
+  mediaType: 'scene' | 'site';
   tmdbId: number;
   issueId?: never;
 }

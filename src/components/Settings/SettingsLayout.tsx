@@ -1,16 +1,13 @@
 import PageTitle from '@app/components/Common/PageTitle';
 import type { SettingsRoute } from '@app/components/Common/SettingsTabs';
 import SettingsTabs from '@app/components/Common/SettingsTabs';
-import useSettings from '@app/hooks/useSettings';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
-import { MediaServerType } from '@server/constants/server';
 import { useIntl } from 'react-intl';
 
 const messages = defineMessages('components.Settings', {
   menuGeneralSettings: 'General',
   menuUsers: 'Users',
-  menuPlexSettings: 'Plex',
   menuJellyfinSettings: '{mediaServerName}',
   menuStashSettings: 'Stash',
   menuServices: 'Services',
@@ -19,7 +16,6 @@ const messages = defineMessages('components.Settings', {
   menuLogs: 'Logs',
   menuJobs: 'Jobs & Cache',
   menuAbout: 'About',
-  menuMetadataProviders: 'Metadata Providers',
 });
 
 type SettingsLayoutProps = {
@@ -28,7 +24,6 @@ type SettingsLayoutProps = {
 
 const SettingsLayout = ({ children }: SettingsLayoutProps) => {
   const intl = useIntl();
-  const settings = useSettings();
   const settingsRoutes: SettingsRoute[] = [
     {
       text: intl.formatMessage(messages.menuGeneralSettings),
@@ -40,17 +35,11 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
       route: '/settings/users',
       regex: /^\/settings\/users/,
     },
-    settings.currentSettings.mediaServerType === MediaServerType.PLEX
-      ? {
-          text: intl.formatMessage(messages.menuPlexSettings),
-          route: '/settings/plex',
-          regex: /^\/settings\/plex/,
-        }
-      : {
-          text: getAvailableMediaServerName(),
-          route: '/settings/jellyfin',
-          regex: /^\/settings\/jellyfin/,
-        },
+    {
+      text: getAvailableMediaServerName(),
+      route: '/settings/jellyfin',
+      regex: /^\/settings\/jellyfin/,
+    },
     {
       text: intl.formatMessage(messages.menuStashSettings),
       route: '/settings/stash',
@@ -65,11 +54,6 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
       text: intl.formatMessage(messages.menuNetwork),
       route: '/settings/network',
       regex: /^\/settings\/network/,
-    },
-    {
-      text: intl.formatMessage(messages.menuMetadataProviders),
-      route: '/settings/metadata',
-      regex: /^\/settings\/metadata/,
     },
     {
       text: intl.formatMessage(messages.menuNotifications),
@@ -104,12 +88,7 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
   );
   function getAvailableMediaServerName() {
     return intl.formatMessage(messages.menuJellyfinSettings, {
-      mediaServerName:
-        settings.currentSettings.mediaServerType === MediaServerType.JELLYFIN
-          ? 'Jellyfin'
-          : settings.currentSettings.mediaServerType === MediaServerType.EMBY
-            ? 'Emby'
-            : undefined,
+      mediaServerName: 'Jellyfin',
     });
   }
 };

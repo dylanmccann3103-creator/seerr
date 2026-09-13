@@ -1,11 +1,8 @@
-import RadarrAPI from '@server/api/servarr/radarr';
-import SonarrAPI from '@server/api/servarr/sonarr';
 import {
   MediaRequestStatus,
   MediaStatus,
   MediaType,
 } from '@server/constants/media';
-import { MediaServerType } from '@server/constants/server';
 import { getRepository } from '@server/datasource';
 import { Blocklist } from '@server/entity/Blocklist';
 import type { User } from '@server/entity/User';
@@ -252,20 +249,11 @@ class Media {
   @Column({ nullable: true, type: 'varchar' })
   public jellyfinMediaId4k?: string | null;
 
-  public serviceUrl?: string;
-  public serviceUrl4k?: string;
   public hasActiveRequest?: boolean;
   public downloadStatus?: DownloadingItem[] = [];
   public downloadStatus4k?: DownloadingItem[] = [];
 
   public mediaUrl?: string;
-  public mediaUrl4k?: string;
-
-  public iOSPlexUrl?: string;
-  public iOSPlexUrl4k?: string;
-
-  public tautulliUrl?: string;
-  public tautulliUrl4k?: string;
 
   constructor(init?: Partial<Media>) {
     Object.assign(this, init);
@@ -289,190 +277,34 @@ class Media {
   }
 
   @AfterLoad()
-  public setPlexUrls(): void {
-    const { machineId, webAppUrl } = getSettings().plex;
-    const { externalUrl: tautulliUrl } = getSettings().tautulli;
+  public setMediaUrl(): void {
+    const { serverId, externalHostname } = getSettings().jellyfin;
+    const jellyfinHost =
+      externalHostname && externalHostname.length > 0
+        ? externalHostname
+        : getHostname();
 
-    if (getSettings().main.mediaServerType == MediaServerType.PLEX) {
-      if (this.ratingKey) {
-        this.mediaUrl = `${
-          webAppUrl ? webAppUrl : 'https://app.plex.tv/desktop'
-        }#!/server/${machineId}/details?key=%2Flibrary%2Fmetadata%2F${
-          this.ratingKey
-        }`;
-
-        this.iOSPlexUrl = `plex://preplay/?metadataKey=%2Flibrary%2Fmetadata%2F${this.ratingKey}&server=${machineId}`;
-
-        if (tautulliUrl) {
-          this.tautulliUrl = `${tautulliUrl}/info?rating_key=${this.ratingKey}`;
-        }
-      }
-
-      if (this.ratingKey4k) {
-        this.mediaUrl4k = `${
-          webAppUrl ? webAppUrl : 'https://app.plex.tv/desktop'
-        }#!/server/${machineId}/details?key=%2Flibrary%2Fmetadata%2F${
-          this.ratingKey4k
-        }`;
-
-        this.iOSPlexUrl4k = `plex://preplay/?metadataKey=%2Flibrary%2Fmetadata%2F${this.ratingKey4k}&server=${machineId}`;
-
-        if (tautulliUrl) {
-          this.tautulliUrl4k = `${tautulliUrl}/info?rating_key=${this.ratingKey4k}`;
-        }
-      }
-    } else {
-      const pageName =
-        getSettings().main.mediaServerType == MediaServerType.EMBY
-          ? 'item'
-          : 'details';
-      const { serverId, externalHostname } = getSettings().jellyfin;
-      const jellyfinHost =
-        externalHostname && externalHostname.length > 0
-          ? externalHostname
-          : getHostname();
-
-      if (this.jellyfinMediaId) {
-        this.mediaUrl = `${jellyfinHost}/web/index.html#!/${pageName}?id=${this.jellyfinMediaId}&context=home&serverId=${serverId}`;
-      }
-      if (this.jellyfinMediaId4k) {
-        this.mediaUrl4k = `${jellyfinHost}/web/index.html#!/${pageName}?id=${this.jellyfinMediaId4k}&context=home&serverId=${serverId}`;
-      }
-    }
-  }
-
-  @AfterLoad()
-  public setServiceUrl(): void {
-    if (this.mediaType === MediaType.MOVIE) {
-      if (this.serviceId !== null && this.externalServiceSlug !== null) {
-        const settings = getSettings();
-        const server = settings.radarr.find(
-          (radarr) => radarr.id === this.serviceId
-        );
-
-        if (server) {
-          this.serviceUrl = server.externalUrl
-            ? `${server.externalUrl}/movie/${this.externalServiceSlug}`
-            : RadarrAPI.buildUrl(server, `/movie/${this.externalServiceSlug}`);
-        }
-      }
-
-      if (this.serviceId4k !== null && this.externalServiceSlug4k !== null) {
-        const settings = getSettings();
-        const server = settings.radarr.find(
-          (radarr) => radarr.id === this.serviceId4k
-        );
-
-        if (server) {
-          this.serviceUrl4k = server.externalUrl
-            ? `${server.externalUrl}/movie/${this.externalServiceSlug4k}`
-            : RadarrAPI.buildUrl(
-                server,
-                `/movie/${this.externalServiceSlug4k}`
-              );
-        }
-      }
-    }
-
-    if (this.mediaType === MediaType.TV) {
-      if (this.serviceId !== null && this.externalServiceSlug !== null) {
-        const settings = getSettings();
-        const server = settings.sonarr.find(
-          (sonarr) => sonarr.id === this.serviceId
-        );
-
-        if (server) {
-          this.serviceUrl = server.externalUrl
-            ? `${server.externalUrl}/series/${this.externalServiceSlug}`
-            : SonarrAPI.buildUrl(server, `/series/${this.externalServiceSlug}`);
-        }
-      }
-
-      if (this.serviceId4k !== null && this.externalServiceSlug4k !== null) {
-        const settings = getSettings();
-        const server = settings.sonarr.find(
-          (sonarr) => sonarr.id === this.serviceId4k
-        );
-
-        if (server) {
-          this.serviceUrl4k = server.externalUrl
-            ? `${server.externalUrl}/series/${this.externalServiceSlug4k}`
-            : SonarrAPI.buildUrl(
-                server,
-                `/series/${this.externalServiceSlug4k}`
-              );
-        }
-      }
+    if (this.jellyfinMediaId) {
+      this.mediaUrl = `${jellyfinHost}/web/index.html#!/details?id=${this.jellyfinMediaId}&context=home&serverId=${serverId}`;
     }
   }
 
   @AfterLoad()
   public getDownloadingItem(): void {
-    if (this.mediaType === MediaType.MOVIE) {
-      if (
-        this.externalServiceId !== undefined &&
-        this.externalServiceId !== null &&
-        this.serviceId !== undefined &&
-        this.serviceId !== null
-      ) {
-        this.downloadStatus = downloadTracker.getMovieProgress(
-          this.serviceId,
-          this.externalServiceId
-        );
-      }
-
-      if (
-        this.externalServiceId4k !== undefined &&
-        this.externalServiceId4k !== null &&
-        this.serviceId4k !== undefined &&
-        this.serviceId4k !== null
-      ) {
-        this.downloadStatus4k = downloadTracker.getMovieProgress(
-          this.serviceId4k,
-          this.externalServiceId4k
-        );
-      }
+    if (this.externalServiceId == null) {
+      return;
     }
-
-    if (this.externalServiceId != null) {
-      if (this.mediaType === MediaType.SITE) {
-        this.downloadStatus = downloadTracker.getWhisparrProgress({
-          siteExternalId: this.externalServiceId,
-        });
-      }
-      // Scene rows keep the Whisparr episode id; its site id is not stored,
-      // so match on the episode alone.
-      if (this.mediaType === MediaType.SCENE) {
-        this.downloadStatus = downloadTracker.getWhisparrProgress({
-          episodeId: this.externalServiceId,
-        });
-      }
+    if (this.mediaType === MediaType.SITE) {
+      this.downloadStatus = downloadTracker.getWhisparrProgress({
+        siteExternalId: this.externalServiceId,
+      });
     }
-
-    if (this.mediaType === MediaType.TV) {
-      if (
-        this.externalServiceId !== undefined &&
-        this.externalServiceId !== null &&
-        this.serviceId !== undefined &&
-        this.serviceId !== null
-      ) {
-        this.downloadStatus = downloadTracker.getSeriesProgress(
-          this.serviceId,
-          this.externalServiceId
-        );
-      }
-
-      if (
-        this.externalServiceId4k !== undefined &&
-        this.externalServiceId4k !== null &&
-        this.serviceId4k !== undefined &&
-        this.serviceId4k !== null
-      ) {
-        this.downloadStatus4k = downloadTracker.getSeriesProgress(
-          this.serviceId4k,
-          this.externalServiceId4k
-        );
-      }
+    // Scene rows keep the Whisparr episode id; its site id is not stored,
+    // so match on the episode alone.
+    if (this.mediaType === MediaType.SCENE) {
+      this.downloadStatus = downloadTracker.getWhisparrProgress({
+        episodeId: this.externalServiceId,
+      });
     }
   }
 }

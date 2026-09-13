@@ -1,12 +1,11 @@
-import TheMovieDb from '@server/api/themoviedb';
 import { IssueType, IssueTypeName } from '@server/constants/issue';
-import { MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import IssueComment from '@server/entity/IssueComment';
 import Media from '@server/entity/Media';
 import { User } from '@server/entity/User';
 import notificationManager, { Notification } from '@server/lib/notifications';
 import { Permission } from '@server/lib/permissions';
+import { tpdbTitle } from '@server/lib/tpdbTitle';
 import logger from '@server/logger';
 import { sortBy } from 'lodash';
 import type { EntitySubscriberInterface, InsertEvent } from 'typeorm';
@@ -19,10 +18,6 @@ export class IssueCommentSubscriber implements EntitySubscriberInterface<IssueCo
   }
 
   private async sendIssueCommentNotification(entity: IssueComment) {
-    let title: string;
-    let image: string;
-    const tmdb = new TheMovieDb();
-
     try {
       const issue = (
         await getRepository(IssueComment).findOneOrFail({
@@ -39,21 +34,7 @@ export class IssueCommentSubscriber implements EntitySubscriberInterface<IssueCo
         where: { id: issue.media.id },
       });
 
-      if (media.mediaType === MediaType.MOVIE) {
-        const movie = await tmdb.getMovie({ movieId: media.tmdbId });
-
-        title = `${movie.title}${
-          movie.release_date ? ` (${movie.release_date.slice(0, 4)})` : ''
-        }`;
-        image = `https://image.tmdb.org/t/p/w600_and_h900_bestv2${movie.poster_path}`;
-      } else {
-        const tvshow = await tmdb.getTvShow({ tvId: media.tmdbId });
-
-        title = `${tvshow.name}${
-          tvshow.first_air_date ? ` (${tvshow.first_air_date.slice(0, 4)})` : ''
-        }`;
-        image = `https://image.tmdb.org/t/p/w600_and_h900_bestv2${tvshow.poster_path}`;
-      }
+      const { subject: title, image } = await tpdbTitle(media);
 
       const [firstComment] = sortBy(issue.comments, 'id');
 

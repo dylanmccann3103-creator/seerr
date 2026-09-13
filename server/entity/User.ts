@@ -297,7 +297,7 @@ export class User {
               id: this.id,
             },
             ...(movieQuotaDays ? { createdAt: AfterDate(movieDate) } : {}),
-            type: MediaType.MOVIE,
+            type: MediaType.SCENE,
             status: Not(MediaRequestStatus.DECLINED),
             ignoreQuota: false,
           },
@@ -319,7 +319,7 @@ export class User {
       .createQueryBuilder('request')
       .leftJoin('request.requestedBy', 'requestedBy')
       .where('request.type = :requestType', {
-        requestType: MediaType.TV,
+        requestType: MediaType.SITE,
       })
       .andWhere('requestedBy.id = :userId', {
         userId: this.id,

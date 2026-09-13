@@ -5,7 +5,7 @@ import CachedImage from '@app/components/Common/CachedImage';
 import Tooltip from '@app/components/Common/Tooltip';
 import RequestModal from '@app/components/RequestModal';
 import StatusBadge from '@app/components/StatusBadge';
-import useDeepLinks from '@app/hooks/useDeepLinks';
+import type { RequestDetails } from '@app/hooks/useRequestTitle';
 import useRequestTitle, {
   isSeasonalRequest,
   requestLink,
@@ -31,8 +31,6 @@ import {
 import { MediaRequestStatus, MediaStatus } from '@server/constants/media';
 import type { MediaRequest } from '@server/entity/MediaRequest';
 import type { NonFunctionProperties } from '@server/interfaces/api/common';
-import type { MovieDetails } from '@server/models/Movie';
-import type { TvDetails } from '@server/models/Tv';
 import axios from 'axios';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -85,12 +83,7 @@ const RequestCardError = ({ requestData }: RequestCardErrorProps) => {
   const { hasPermission } = useUser();
   const intl = useIntl();
 
-  const { mediaUrl: plexUrl, mediaUrl4k: plexUrl4k } = useDeepLinks({
-    mediaUrl: requestData?.media?.mediaUrl,
-    mediaUrl4k: requestData?.media?.mediaUrl4k,
-    iOSPlexUrl: requestData?.media?.iOSPlexUrl,
-    iOSPlexUrl4k: requestData?.media?.iOSPlexUrl4k,
-  });
+  const plexUrl = requestData?.media?.mediaUrl;
 
   const requestDownloadStatus = getRequestDownloadStatus(
     requestData?.media?.[
@@ -174,12 +167,7 @@ const RequestCardError = ({ requestData }: RequestCardErrorProps) => {
                       inProgress={requestDownloadStatus.length > 0}
                       is4k={requestData.is4k}
                       mediaType={requestType(requestData)}
-                      plexUrl={requestData.is4k ? plexUrl4k : plexUrl}
-                      serviceUrl={
-                        requestData.is4k
-                          ? requestData.media.serviceUrl4k
-                          : requestData.media.serviceUrl
-                      }
+                      plexUrl={plexUrl}
                     />
                   )}
                 </div>
@@ -222,7 +210,7 @@ const RequestCardError = ({ requestData }: RequestCardErrorProps) => {
 
 interface RequestCardProps {
   request: NonFunctionProperties<MediaRequest>;
-  onTitleData?: (requestId: number, title: MovieDetails | TvDetails) => void;
+  onTitleData?: (requestId: number, title: RequestDetails) => void;
 }
 
 const RequestCard = ({ request, onTitleData }: RequestCardProps) => {
@@ -256,12 +244,7 @@ const RequestCard = ({ request, onTitleData }: RequestCardProps) => {
     }
   );
 
-  const { mediaUrl: plexUrl, mediaUrl4k: plexUrl4k } = useDeepLinks({
-    mediaUrl: requestData?.media?.mediaUrl,
-    mediaUrl4k: requestData?.media?.mediaUrl4k,
-    iOSPlexUrl: requestData?.media?.iOSPlexUrl,
-    iOSPlexUrl4k: requestData?.media?.iOSPlexUrl4k,
-  });
+  const plexUrl = requestData?.media?.mediaUrl;
 
   const modifyRequest = async (type: 'approve' | 'decline') => {
     setUpdatingType(type);
@@ -305,13 +288,8 @@ const RequestCard = ({ request, onTitleData }: RequestCardProps) => {
   };
 
   useEffect(() => {
-    // Only TMDB shapes are consumed upstream (UserProfile backdrops).
-    if (
-      rawTitle &&
-      onTitleData &&
-      (request.type === 'movie' || request.type === 'tv')
-    ) {
-      onTitleData(request.id, rawTitle as MovieDetails | TvDetails);
+    if (rawTitle && onTitleData) {
+      onTitleData(request.id, rawTitle);
     }
   }, [rawTitle, onTitleData, request]);
 
@@ -344,7 +322,6 @@ const RequestCard = ({ request, onTitleData }: RequestCardProps) => {
         show={showEditModal}
         tmdbId={requestMediaId(request)}
         type={requestType(request)}
-        is4k={request.is4k}
         editRequest={request}
         onCancel={() => setShowEditModal(false)}
         onComplete={() => {
@@ -470,12 +447,7 @@ const RequestCard = ({ request, onTitleData }: RequestCardProps) => {
                 is4k={requestData.is4k}
                 tmdbId={requestMediaId(requestData)}
                 mediaType={requestType(requestData)}
-                plexUrl={requestData.is4k ? plexUrl4k : plexUrl}
-                serviceUrl={
-                  requestData.is4k
-                    ? requestData.media.serviceUrl4k
-                    : requestData.media.serviceUrl
-                }
+                plexUrl={plexUrl}
               />
             )}
           </div>

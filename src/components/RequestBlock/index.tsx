@@ -3,7 +3,6 @@ import Button from '@app/components/Common/Button';
 import CachedImage from '@app/components/Common/CachedImage';
 import Tooltip from '@app/components/Common/Tooltip';
 import RequestModal from '@app/components/RequestModal';
-import useRequestOverride from '@app/hooks/useRequestOverride';
 import { useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
@@ -26,11 +25,6 @@ import { mutate } from 'swr';
 
 const messages = defineMessages('components.RequestBlock', {
   seasons: '{seasonCount, plural, one {Season} other {Seasons}}',
-  requestoverrides: 'Request Overrides',
-  server: 'Destination Server',
-  profilechanged: 'Quality Profile',
-  rootfolder: 'Root Folder',
-  languageprofile: 'Language Profile',
   requestdate: 'Request Date',
   requestedby: 'Requested By',
   lastmodifiedby: 'Last Modified By',
@@ -50,8 +44,6 @@ const RequestBlock = ({ request, onUpdate }: RequestBlockProps) => {
   const intl = useIntl();
   const [isUpdating, setIsUpdating] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const { profile, rootFolder, server, languageProfile } =
-    useRequestOverride(request);
 
   const updateRequest = async (type: 'approve' | 'decline'): Promise<void> => {
     setIsUpdating(true);
@@ -80,9 +72,8 @@ const RequestBlock = ({ request, onUpdate }: RequestBlockProps) => {
     <div className="block">
       <RequestModal
         show={showEditModal}
-        tmdbId={request.media.tmdbId}
-        type={request.type as 'movie' | 'tv'}
-        is4k={request.is4k}
+        tmdbId={Number(request.media.tpdbId)}
+        type={request.type as 'scene' | 'site'}
         editRequest={request}
         onCancel={() => setShowEditModal(false)}
         onComplete={() => {
@@ -282,47 +273,6 @@ const RequestBlock = ({ request, onUpdate }: RequestBlockProps) => {
               ))}
             </div>
           </div>
-        )}
-        {(server || profile || rootFolder || languageProfile) && (
-          <>
-            <div className="mb-1 mt-4 text-sm">
-              {intl.formatMessage(messages.requestoverrides)}
-            </div>
-            <ul className="divide-y divide-gray-700 rounded-md bg-gray-800 px-2 text-xs">
-              {server && (
-                <li className="flex justify-between px-1 py-2">
-                  <span className="font-bold">
-                    {intl.formatMessage(messages.server)}
-                  </span>
-                  <span>{server}</span>
-                </li>
-              )}
-              {profile && (
-                <li className="flex justify-between px-1 py-2">
-                  <span className="font-bold">
-                    {intl.formatMessage(messages.profilechanged)}
-                  </span>
-                  <span>{profile}</span>
-                </li>
-              )}
-              {rootFolder && (
-                <li className="flex justify-between px-1 py-2">
-                  <span className="mr-2 font-bold">
-                    {intl.formatMessage(messages.rootfolder)}
-                  </span>
-                  <span>{rootFolder}</span>
-                </li>
-              )}
-              {languageProfile && (
-                <li className="flex justify-between px-1 py-2">
-                  <span className="mr-2 font-bold">
-                    {intl.formatMessage(messages.languageprofile)}
-                  </span>
-                  <span>{languageProfile}</span>
-                </li>
-              )}
-            </ul>
-          </>
         )}
       </div>
     </div>

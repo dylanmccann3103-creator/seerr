@@ -3,43 +3,25 @@ import PersonCard from '@app/components/PersonCard';
 import Slider from '@app/components/Slider';
 import TitleCard from '@app/components/TitleCard';
 import useSettings from '@app/hooks/useSettings';
-import { useUser } from '@app/hooks/useUser';
 import { ArrowRightCircleIcon } from '@heroicons/react/24/outline';
 import { MediaStatus } from '@server/constants/media';
-import { Permission } from '@server/lib/permissions';
 import type { PerformerResult } from '@server/models/Performer';
 import type { SceneResult } from '@server/models/Scene';
-import type {
-  MovieResult,
-  PersonResult,
-  TvResult,
-} from '@server/models/Search';
 import type { SiteResult } from '@server/models/Site';
 import Link from 'next/link';
 import { useEffect } from 'react';
 import useSWRInfinite from 'swr/infinite';
 
-type SliderResult =
-  | MovieResult
-  | TvResult
-  | PersonResult
-  | SceneResult
-  | SiteResult
-  | PerformerResult;
+type SliderResult = SceneResult | SiteResult | PerformerResult;
 
-const isRequestable = (
-  i: SliderResult
-): i is MovieResult | TvResult | SceneResult | SiteResult =>
-  i.mediaType === 'movie' ||
-  i.mediaType === 'tv' ||
-  i.mediaType === 'scene' ||
-  i.mediaType === 'site';
+const isRequestable = (i: SliderResult): i is SceneResult | SiteResult =>
+  i.mediaType === 'scene' || i.mediaType === 'site';
 
 interface MixedResult {
   page: number;
   totalResults: number;
   totalPages: number;
-  results: (TvResult | MovieResult | PersonResult)[];
+  results: SliderResult[];
 }
 
 interface MediaSliderProps {
@@ -62,7 +44,6 @@ const MediaSlider = ({
   onNewTitles,
 }: MediaSliderProps) => {
   const settings = useSettings();
-  const { hasPermission } = useUser();
   const { data, error, setSize, size } = useSWRInfinite<MixedResult>(
     (pageIndex: number, previousPageData: MixedResult | null) => {
       if (previousPageData && pageIndex + 1 > previousPageData.totalPages) {
@@ -130,98 +111,43 @@ const MediaSlider = ({
     return null;
   }
 
-  const blocklistVisibility = hasPermission(
-    [Permission.MANAGE_BLOCKLIST, Permission.VIEW_BLOCKLIST],
-    { type: 'or' }
-  );
-
-  const finalTitles = titles
-    .slice(0, 20)
-    .filter((title) => {
-      if (!blocklistVisibility)
+  const finalTitles = titles.slice(0, 20).map((title) => {
+    switch (title.mediaType) {
+      case 'scene':
         return (
-          (title as TvResult | MovieResult).mediaInfo?.status !==
-          MediaStatus.BLOCKLISTED
+          <TitleCard
+            key={title.id}
+            id={title.id}
+            image={title.posterPath}
+            status={title.mediaInfo?.status}
+            title={title.title}
+            mediaType={title.mediaType}
+            inProgress={(title.mediaInfo?.downloadStatus ?? []).length > 0}
+          />
         );
-      return title;
-    })
-    .map((title) => {
-      switch (title.mediaType) {
-        case 'movie':
-          return (
-            <TitleCard
-              key={title.id}
-              id={title.id}
-              isAddedToWatchlist={title.mediaInfo?.watchlists?.length ?? 0}
-              image={title.posterPath}
-              status={title.mediaInfo?.status}
-              summary={title.overview}
-              title={title.title}
-              userScore={title.voteAverage}
-              year={title.releaseDate}
-              mediaType={title.mediaType}
-              inProgress={(title.mediaInfo?.downloadStatus ?? []).length > 0}
-            />
-          );
-        case 'tv':
-          return (
-            <TitleCard
-              key={title.id}
-              id={title.id}
-              isAddedToWatchlist={title.mediaInfo?.watchlists?.length ?? 0}
-              image={title.posterPath}
-              status={title.mediaInfo?.status}
-              summary={title.overview}
-              title={title.name}
-              userScore={title.voteAverage}
-              year={title.firstAirDate}
-              mediaType={title.mediaType}
-              inProgress={(title.mediaInfo?.downloadStatus ?? []).length > 0}
-            />
-          );
-        case 'person':
-          return (
-            <PersonCard
-              personId={title.id}
-              name={title.name}
-              profilePath={title.profilePath}
-            />
-          );
-        case 'scene':
-          return (
-            <TitleCard
-              key={title.id}
-              id={title.id}
-              image={title.posterPath}
-              status={title.mediaInfo?.status}
-              title={title.title}
-              mediaType={title.mediaType}
-              inProgress={(title.mediaInfo?.downloadStatus ?? []).length > 0}
-            />
-          );
-        case 'site':
-          return (
-            <TitleCard
-              key={title.id}
-              id={title.id}
-              image={title.posterPath}
-              status={title.mediaInfo?.status}
-              title={title.name}
-              mediaType={title.mediaType}
-              inProgress={(title.mediaInfo?.downloadStatus ?? []).length > 0}
-            />
-          );
-        case 'performer':
-          return (
-            <PersonCard
-              type="performer"
-              personId={title.id}
-              name={title.name}
-              profilePath={title.posterPath}
-            />
-          );
-      }
-    });
+      case 'site':
+        return (
+          <TitleCard
+            key={title.id}
+            id={title.id}
+            image={title.posterPath}
+            status={title.mediaInfo?.status}
+            title={title.name}
+            mediaType={title.mediaType}
+            inProgress={(title.mediaInfo?.downloadStatus ?? []).length > 0}
+          />
+        );
+      case 'performer':
+        return (
+          <PersonCard
+            type="performer"
+            personId={title.id}
+            name={title.name}
+            profilePath={title.posterPath}
+          />
+        );
+    }
+  });
 
   if (linkUrl && titles.length > 20) {
     finalTitles.push(
@@ -230,9 +156,7 @@ const MediaSlider = ({
         posters={titles
           .slice(20, 24)
           .map((title) =>
-            title.mediaType !== 'person' && title.mediaType !== 'performer'
-              ? title.posterPath
-              : undefined
+            title.mediaType !== 'performer' ? title.posterPath : undefined
           )}
       />
     );

@@ -1,16 +1,9 @@
-import RadarrAPI from '@server/api/servarr/radarr';
-import SonarrAPI from '@server/api/servarr/sonarr';
-import TautulliAPI from '@server/api/tautulli';
-import TheMovieDb from '@server/api/themoviedb';
+import WhisparrAPI from '@server/api/servarr/whisparr';
 import { MediaStatus, MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import Media from '@server/entity/Media';
 import Season from '@server/entity/Season';
-import { User } from '@server/entity/User';
-import type {
-  MediaResultsResponse,
-  MediaWatchDataResponse,
-} from '@server/interfaces/api/mediaInterfaces';
+import type { MediaResultsResponse } from '@server/interfaces/api/mediaInterfaces';
 import { Permission } from '@server/lib/permissions';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
@@ -200,94 +193,43 @@ mediaRoutes.delete(
   }
 );
 
+// Removes the site (and its files) from Whisparr. Scene rows are episodes of
+// a site; Whisparr has no per-episode delete, so only sites are supported.
 mediaRoutes.delete(
   '/:id/file',
   isAuthenticated(Permission.MANAGE_REQUESTS),
   async (req, res, next) => {
     try {
-      const settings = getSettings();
+      const { whisparr } = getSettings();
       const mediaRepository = getRepository(Media);
       const media = await mediaRepository.findOneOrFail({
         where: { id: Number(req.params.id) },
       });
 
-      const is4k = String(req.query.is4k) === 'true';
-      const isMovie = media.mediaType === MediaType.MOVIE;
-
-      let serviceSettings;
-      if (isMovie) {
-        serviceSettings = settings.radarr.find(
-          (radarr) => radarr.isDefault && radarr.is4k === is4k
-        );
-      } else {
-        serviceSettings = settings.sonarr.find(
-          (sonarr) => sonarr.isDefault && sonarr.is4k === is4k
-        );
-      }
-
-      const specificServiceId = is4k ? media.serviceId4k : media.serviceId;
-      if (
-        specificServiceId &&
-        specificServiceId >= 0 &&
-        serviceSettings?.id !== specificServiceId
-      ) {
-        if (isMovie) {
-          serviceSettings = settings.radarr.find(
-            (radarr) => radarr.id === specificServiceId
-          );
-        } else {
-          serviceSettings = settings.sonarr.find(
-            (sonarr) => sonarr.id === specificServiceId
-          );
-        }
-      }
-
-      if (!serviceSettings) {
-        const arrName = `${is4k ? '4K ' : ''}${isMovie ? 'Radarr' : 'Sonarr'}`;
-        logger.info(
-          `There is no default ${arrName} server configured. Did you set any of your ${arrName} servers as default?`,
-          {
-            label: 'Media Request',
-            mediaId: media.id,
-          }
-        );
+      if (media.mediaType !== MediaType.SITE || !media.tpdbId) {
         return next({
           status: 409,
-          message: `No ${arrName} server configured to delete media files`,
+          message: 'Only sites can be removed from Whisparr',
+        });
+      }
+      if (!whisparr.enabled || !whisparr.apiKey || !whisparr.hostname) {
+        return next({
+          status: 409,
+          message: 'No Whisparr server configured to delete media files',
         });
       }
 
-      let service;
-      if (isMovie) {
-        service = new RadarrAPI({
-          apiKey: serviceSettings?.apiKey,
-          url: RadarrAPI.buildUrl(serviceSettings, '/api/v3'),
-        });
-      } else {
-        service = new SonarrAPI({
-          apiKey: serviceSettings?.apiKey,
-          url: SonarrAPI.buildUrl(serviceSettings, '/api/v3'),
-        });
+      const api = new WhisparrAPI({
+        apiKey: whisparr.apiKey,
+        url: WhisparrAPI.buildUrl(whisparr, '/api/v3'),
+      });
+      await api.removeSite(Number(media.tpdbId));
+
+      for (const season of media.seasons) {
+        season.status = MediaStatus.DELETED;
       }
-
-      if (isMovie) {
-        await (service as RadarrAPI).removeMovie(media.tmdbId);
-      } else {
-        const tmdb = new TheMovieDb();
-        const series = await tmdb.getTvShow({ tvId: media.tmdbId });
-        const tvdbId = series.external_ids.tvdb_id ?? media.tvdbId;
-        if (!tvdbId) {
-          throw new Error('TVDB ID not found');
-        }
-        await (service as SonarrAPI).removeSeries(tvdbId);
-
-        for (const season of media.seasons) {
-          season[is4k ? 'status4k' : 'status'] = MediaStatus.DELETED;
-        }
-      }
-
-      media[is4k ? 'status4k' : 'status'] = MediaStatus.DELETED;
-      media.resetServiceData(is4k);
+      media.status = MediaStatus.DELETED;
+      media.resetServiceData(false);
       await mediaRepository.save(media);
 
       return res.status(204).send();
@@ -301,105 +243,6 @@ mediaRoutes.delete(
         message: e.message,
       });
       next({ status: 500, message: 'Failed to delete media file' });
-    }
-  }
-);
-
-mediaRoutes.get<{ id: string }, MediaWatchDataResponse>(
-  '/:id/watch_data',
-  isAuthenticated(Permission.ADMIN),
-  async (req, res, next) => {
-    const settings = getSettings().tautulli;
-
-    if (!settings.hostname || !settings.port || !settings.apiKey) {
-      return next({
-        status: 404,
-        message: 'Tautulli API not configured.',
-      });
-    }
-
-    const media = await getRepository(Media).findOne({
-      where: { id: Number(req.params.id) },
-    });
-
-    if (!media) {
-      return next({ status: 404, message: 'Media does not exist.' });
-    }
-
-    try {
-      const tautulli = new TautulliAPI(settings);
-      const userRepository = getRepository(User);
-
-      const response: MediaWatchDataResponse = {};
-
-      if (media.ratingKey) {
-        const watchStats = await tautulli.getMediaWatchStats(media.ratingKey);
-        const watchUsers = await tautulli.getMediaWatchUsers(media.ratingKey);
-        const plexIds = watchUsers.map((u) => u.user_id);
-        if (!plexIds.length) plexIds.push(-1);
-
-        const users = await userRepository
-          .createQueryBuilder('user')
-          .where('user.plexId IN (:...plexIds)', { plexIds })
-          .getMany();
-
-        const playCount =
-          watchStats.find((i) => i.query_days == 0)?.total_plays ?? 0;
-
-        const playCount7Days =
-          watchStats.find((i) => i.query_days == 7)?.total_plays ?? 0;
-
-        const playCount30Days =
-          watchStats.find((i) => i.query_days == 30)?.total_plays ?? 0;
-
-        response.data = {
-          users: users,
-          playCount,
-          playCount7Days,
-          playCount30Days,
-        };
-      }
-
-      if (media.ratingKey4k) {
-        const watchStats4k = await tautulli.getMediaWatchStats(
-          media.ratingKey4k
-        );
-        const watchUsers4k = await tautulli.getMediaWatchUsers(
-          media.ratingKey4k
-        );
-        const plexIds4k = watchUsers4k.map((u) => u.user_id);
-        if (!plexIds4k.length) plexIds4k.push(-1);
-
-        const users = await userRepository
-          .createQueryBuilder('user')
-          .where('user.plexId IN (:...plexIds)', { plexIds: plexIds4k })
-          .getMany();
-
-        const playCount =
-          watchStats4k.find((i) => i.query_days == 0)?.total_plays ?? 0;
-
-        const playCount7Days =
-          watchStats4k.find((i) => i.query_days == 7)?.total_plays ?? 0;
-
-        const playCount30Days =
-          watchStats4k.find((i) => i.query_days == 30)?.total_plays ?? 0;
-
-        response.data4k = {
-          users,
-          playCount,
-          playCount7Days,
-          playCount30Days,
-        };
-      }
-
-      return res.status(200).json(response);
-    } catch (e) {
-      logger.error('Something went wrong fetching media watch data', {
-        label: 'API',
-        errorMessage: e.message,
-        mediaId: req.params.id,
-      });
-      next({ status: 500, message: 'Failed to fetch watch data.' });
     }
   }
 );

@@ -5,7 +5,6 @@ import CachedImage from '@app/components/Common/CachedImage';
 import ConfirmButton from '@app/components/Common/ConfirmButton';
 import RequestModal from '@app/components/RequestModal';
 import StatusBadge from '@app/components/StatusBadge';
-import useDeepLinks from '@app/hooks/useDeepLinks';
 import useRequestTitle, {
   isSeasonalRequest,
   requestLink,
@@ -89,12 +88,7 @@ const RequestItemError = ({
     mutate('/api/v1/request/count');
   };
 
-  const { mediaUrl: plexUrl, mediaUrl4k: plexUrl4k } = useDeepLinks({
-    mediaUrl: requestData?.media?.mediaUrl,
-    mediaUrl4k: requestData?.media?.mediaUrl4k,
-    iOSPlexUrl: requestData?.media?.iOSPlexUrl,
-    iOSPlexUrl4k: requestData?.media?.iOSPlexUrl4k,
-  });
+  const plexUrl = requestData?.media?.mediaUrl;
 
   const requestDownloadStatus = getRequestDownloadStatus(
     requestData?.media?.[
@@ -165,12 +159,7 @@ const RequestItemError = ({
                     inProgress={requestDownloadStatus.length > 0}
                     is4k={requestData.is4k}
                     mediaType={requestType(requestData)}
-                    plexUrl={requestData.is4k ? plexUrl4k : plexUrl}
-                    serviceUrl={
-                      requestData.is4k
-                        ? requestData.media.serviceUrl4k
-                        : requestData.media.serviceUrl
-                    }
+                    plexUrl={plexUrl}
                   />
                 )}
               </div>
@@ -392,12 +381,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
     }
   };
 
-  const { mediaUrl: plexUrl, mediaUrl4k: plexUrl4k } = useDeepLinks({
-    mediaUrl: requestData?.media?.mediaUrl,
-    mediaUrl4k: requestData?.media?.mediaUrl4k,
-    iOSPlexUrl: requestData?.media?.iOSPlexUrl,
-    iOSPlexUrl4k: requestData?.media?.iOSPlexUrl4k,
-  });
+  const plexUrl = requestData?.media?.mediaUrl;
 
   if (!title && !error) {
     return (
@@ -430,7 +414,6 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
         show={showEditModal}
         tmdbId={requestMediaId(request)}
         type={requestType(request)}
-        is4k={request.is4k}
         editRequest={request}
         onCancel={() => setShowEditModal(false)}
         onComplete={() => {
@@ -547,12 +530,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
                   is4k={requestData.is4k}
                   tmdbId={requestMediaId(requestData)}
                   mediaType={requestType(requestData)}
-                  plexUrl={requestData.is4k ? plexUrl4k : plexUrl}
-                  serviceUrl={
-                    requestData.is4k
-                      ? requestData.media.serviceUrl4k
-                      : requestData.media.serviceUrl
-                  }
+                  plexUrl={plexUrl}
                 />
               )}
             </div>

@@ -5,10 +5,9 @@ import PageTitle from '@app/components/Common/PageTitle';
 import Tooltip from '@app/components/Common/Tooltip';
 import RequestItem from '@app/components/RequestList/RequestItem';
 import { useUpdateQueryParams } from '@app/hooks/useUpdateQueryParams';
-import { Permission, useUser } from '@app/hooks/useUser';
+import { useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
-import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -31,8 +30,6 @@ const messages = defineMessages('components.RequestList', {
   sortAdded: 'Most Recent',
   sortModified: 'Last Modified',
   sortDirection: 'Toggle Sort Direction',
-  unableToConnect:
-    'Unable to connect to {services}. Some information may be unavailable.',
 });
 
 enum Filter {
@@ -59,7 +56,7 @@ const RequestList = () => {
   const { user } = useUser({
     id: Number(router.query.userId),
   });
-  const { user: currentUser, hasPermission } = useUser();
+  const { user: currentUser } = useUser();
   const [currentFilter, setCurrentFilter] = useState<Filter>(Filter.PENDING);
   const [currentSort, setCurrentSort] = useState<Sort>('added');
   const [currentMediaType, setCurrentMediaType] = useState<string>('all');
@@ -291,24 +288,6 @@ const RequestList = () => {
           </div>
         </div>
       </div>
-
-      {data.serviceErrors &&
-        (data.serviceErrors.radarr.length > 0 ||
-          data.serviceErrors.sonarr.length > 0) &&
-        (hasPermission(Permission.MANAGE_REQUESTS) ||
-          hasPermission(Permission.REQUEST_ADVANCED)) && (
-          <div className="service-error-banner">
-            <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0" />
-            <span>
-              {intl.formatMessage(messages.unableToConnect, {
-                services: [
-                  ...data.serviceErrors.radarr.map((s) => s.name),
-                  ...data.serviceErrors.sonarr.map((s) => s.name),
-                ].join(', '),
-              })}
-            </span>
-          </div>
-        )}
 
       {data.results.map((request) => {
         return (

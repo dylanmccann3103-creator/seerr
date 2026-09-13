@@ -65,7 +65,6 @@ const RequestButton = ({
   const settings = useSettings();
   const { user, hasPermission } = useUser();
   const [showRequestModal, setShowRequestModal] = useState(false);
-  const [showRequest4kModal, setShowRequest4kModal] = useState(false);
   const [editRequest, setEditRequest] = useState(false);
   // scene ~ movie (one item), site ~ tv (year seasons); neither has 4K.
   const isSingle = mediaType === 'movie' || mediaType === 'scene';
@@ -216,7 +215,6 @@ const RequestButton = ({
         text: intl.formatMessage(messages.viewrequest4k),
         action: () => {
           setEditRequest(true);
-          setShowRequest4kModal(true);
         },
         svg: <InformationCircleIcon />,
       });
@@ -333,7 +331,6 @@ const RequestButton = ({
       text: intl.formatMessage(globalMessages.request4k),
       action: () => {
         setEditRequest(false);
-        setShowRequest4kModal(true);
       },
       svg: <ArrowDownTrayIcon />,
     });
@@ -353,7 +350,6 @@ const RequestButton = ({
       text: intl.formatMessage(messages.requestmore4k),
       action: () => {
         setEditRequest(false);
-        setShowRequest4kModal(true);
       },
       svg: <ArrowDownTrayIcon />,
     });
@@ -370,25 +366,13 @@ const RequestButton = ({
       <RequestModal
         tmdbId={tmdbId}
         show={showRequestModal}
-        type={mediaType}
+        type={mediaType as 'scene' | 'site'}
         editRequest={editRequest ? activeRequest : undefined}
         onComplete={() => {
           onUpdate();
           setShowRequestModal(false);
         }}
         onCancel={() => setShowRequestModal(false)}
-      />
-      <RequestModal
-        tmdbId={tmdbId}
-        show={showRequest4kModal}
-        type={mediaType}
-        editRequest={editRequest ? active4kRequest : undefined}
-        is4k
-        onComplete={() => {
-          onUpdate();
-          setShowRequest4kModal(false);
-        }}
-        onCancel={() => setShowRequest4kModal(false)}
       />
       <ButtonWithDropdown
         text={

@@ -1,9 +1,9 @@
-import TheMovieDb from '@server/api/themoviedb';
 import { IssueStatus, IssueType, IssueTypeName } from '@server/constants/issue';
 import { MediaType } from '@server/constants/media';
 import Issue from '@server/entity/Issue';
 import notificationManager, { Notification } from '@server/lib/notifications';
 import { Permission } from '@server/lib/permissions';
+import { tpdbTitle } from '@server/lib/tpdbTitle';
 import logger from '@server/logger';
 import { sortBy } from 'lodash';
 import type {
@@ -20,31 +20,16 @@ export class IssueSubscriber implements EntitySubscriberInterface<Issue> {
   }
 
   private async sendIssueNotification(entity: Issue, type: Notification) {
-    let title: string;
-    let image: string;
-    const tmdb = new TheMovieDb();
-
     try {
-      if (entity.media.mediaType === MediaType.MOVIE) {
-        const movie = await tmdb.getMovie({ movieId: entity.media.tmdbId });
-
-        title = `${movie.title}${
-          movie.release_date ? ` (${movie.release_date.slice(0, 4)})` : ''
-        }`;
-        image = `https://image.tmdb.org/t/p/w600_and_h900_bestv2${movie.poster_path}`;
-      } else {
-        const tvshow = await tmdb.getTvShow({ tvId: entity.media.tmdbId });
-
-        title = `${tvshow.name}${
-          tvshow.first_air_date ? ` (${tvshow.first_air_date.slice(0, 4)})` : ''
-        }`;
-        image = `https://image.tmdb.org/t/p/w600_and_h900_bestv2${tvshow.poster_path}`;
-      }
+      const { subject: title, image } = await tpdbTitle(entity.media);
 
       const [firstComment] = sortBy(entity.comments, 'id');
       const extra: { name: string; value: string }[] = [];
 
-      if (entity.media.mediaType === MediaType.TV && entity.problemSeason > 0) {
+      if (
+        entity.media.mediaType === MediaType.SITE &&
+        entity.problemSeason > 0
+      ) {
         extra.push({
           name: 'Affected Season',
           value: entity.problemSeason.toString(),

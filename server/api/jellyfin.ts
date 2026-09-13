@@ -2,7 +2,6 @@
 import ExternalAPI from '@server/api/externalapi';
 import { ApiErrorCode } from '@server/constants/error';
 import { MediaServerType } from '@server/constants/server';
-import availabilitySync from '@server/lib/availabilitySync';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { ApiError } from '@server/types/error';
@@ -544,12 +543,6 @@ class JellyfinAPI extends ExternalAPI {
 
       return itemResponse.Items?.[0];
     } catch (e) {
-      if (availabilitySync.running) {
-        if (e.response?.status === 500) {
-          return undefined;
-        }
-      }
-
       logger.error(
         `Something went wrong while getting library content from the Jellyfin server: ${e.message}`,
         { label: 'Jellyfin API', error: e.response?.status }

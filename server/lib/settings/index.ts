@@ -34,16 +34,6 @@ export interface Language {
   name: string;
 }
 
-export interface PlexSettings {
-  name: string;
-  machineId?: string;
-  ip: string;
-  port: number;
-  useSsl?: boolean;
-  libraries: Library[];
-  webAppUrl?: string;
-}
-
 export interface JellyfinSettings {
   name: string;
   ip: string;
@@ -61,15 +51,6 @@ export interface JellyfinSettings {
   // Whisparr path prefix -> Jellyfin path prefix (containers mount differently).
   pathMappings: { from: string; to: string }[];
 }
-export interface TautulliSettings {
-  hostname?: string;
-  port?: number;
-  useSsl?: boolean;
-  urlBase?: string;
-  apiKey?: string;
-  externalUrl?: string;
-}
-
 export interface DVRSettings {
   id: number;
   name: string;
@@ -89,23 +70,6 @@ export interface DVRSettings {
   preventSearch: boolean;
   tagRequests: boolean;
   overrideRule: number[];
-}
-
-export interface RadarrSettings extends DVRSettings {
-  minimumAvailability: string;
-}
-
-export interface SonarrSettings extends DVRSettings {
-  seriesType: 'standard' | 'daily' | 'anime';
-  animeSeriesType: 'standard' | 'daily' | 'anime';
-  activeAnimeProfileId?: number;
-  activeAnimeProfileName?: string;
-  activeAnimeDirectory?: string;
-  activeAnimeLanguageProfileId?: number;
-  activeLanguageProfileId?: number;
-  animeTags?: number[];
-  enableSeasonFolders: boolean;
-  monitorNewItems: 'all' | 'none';
 }
 
 // Single Whisparr server: this app targets exactly one Whisparr v2 instance,
@@ -147,16 +111,6 @@ export interface StashSettings {
 interface Quota {
   quotaLimit?: number;
   quotaDays?: number;
-}
-
-export enum MetadataProviderType {
-  TMDB = 'tmdb',
-  TVDB = 'tvdb',
-}
-
-export interface MetadataSettings {
-  tv: MetadataProviderType;
-  anime: MetadataProviderType;
 }
 
 // ThePornDB API key. Effective runtime key (settings || TPDB_API_KEY env fallback)
@@ -407,20 +361,10 @@ interface JobSettings {
 }
 
 export type JobId =
-  | 'plex-recently-added-scan'
-  | 'plex-full-scan'
-  | 'plex-watchlist-sync'
-  | 'plex-refresh-token'
-  | 'radarr-scan'
-  | 'sonarr-scan'
   | 'whisparr-scan'
   | 'download-sync'
   | 'download-sync-reset'
-  | 'jellyfin-recently-added-scan'
-  | 'jellyfin-full-scan'
-  | 'image-cache-cleanup'
-  | 'availability-sync'
-  | 'process-blocklisted-tags';
+  | 'image-cache-cleanup';
 
 export interface AllSettings {
   clientId: string;
@@ -428,18 +372,13 @@ export interface AllSettings {
   vapidPublic: string;
   vapidPrivate: string;
   main: MainSettings;
-  plex: PlexSettings;
   jellyfin: JellyfinSettings;
-  tautulli: TautulliSettings;
-  radarr: RadarrSettings[];
-  sonarr: SonarrSettings[];
   whisparr: WhisparrSettings;
   stash: StashSettings;
   public: PublicSettings;
   notifications: NotificationSettings;
   jobs: Record<JobId, JobSettings>;
   network: NetworkSettings;
-  metadataSettings: MetadataSettings;
   tpdb: TpdbSettings;
   migrations: string[];
 }
@@ -488,13 +427,6 @@ class Settings {
         youtubeUrl: '',
         versionCheck: true,
       },
-      plex: {
-        name: '',
-        ip: '',
-        port: 32400,
-        useSsl: false,
-        libraries: [],
-      },
       jellyfin: {
         name: '',
         ip: '',
@@ -509,16 +441,9 @@ class Settings {
         enabled: true,
         pathMappings: [],
       },
-      tautulli: {},
-      metadataSettings: {
-        tv: MetadataProviderType.TMDB,
-        anime: MetadataProviderType.TMDB,
-      },
       tpdb: {
         apiKey: '',
       },
-      radarr: [],
-      sonarr: [],
       whisparr: {
         enabled: false,
         hostname: '',
@@ -651,29 +576,8 @@ class Settings {
         },
       },
       jobs: {
-        'plex-recently-added-scan': {
-          schedule: '0 */5 * * * *',
-        },
-        'plex-full-scan': {
-          schedule: '0 0 3 * * *',
-        },
-        'plex-watchlist-sync': {
-          schedule: '0 */3 * * * *',
-        },
-        'plex-refresh-token': {
-          schedule: '0 0 5 * * *',
-        },
-        'radarr-scan': {
-          schedule: '0 0 4 * * *',
-        },
-        'sonarr-scan': {
-          schedule: '0 30 4 * * *',
-        },
         'whisparr-scan': {
           schedule: '0 45 4 * * *',
-        },
-        'availability-sync': {
-          schedule: '0 0 5 * * *',
         },
         'download-sync': {
           schedule: '0 * * * * *',
@@ -681,17 +585,8 @@ class Settings {
         'download-sync-reset': {
           schedule: '0 0 1 * * *',
         },
-        'jellyfin-recently-added-scan': {
-          schedule: '0 */5 * * * *',
-        },
-        'jellyfin-full-scan': {
-          schedule: '0 0 3 * * *',
-        },
         'image-cache-cleanup': {
           schedule: '0 0 5 * * *',
-        },
-        'process-blocklisted-tags': {
-          schedule: '0 30 1 */7 * *',
         },
       },
       network: {
@@ -730,55 +625,12 @@ class Settings {
     this.data.main = mergeSettings(this.data.main, data);
   }
 
-  get plex(): PlexSettings {
-    return this.data.plex;
-  }
-
-  set plex(data: PlexSettings) {
-    this.data.plex = mergeSettings(this.data.plex, data);
-  }
-
   get jellyfin(): JellyfinSettings {
     return this.data.jellyfin;
   }
 
   set jellyfin(data: JellyfinSettings) {
     this.data.jellyfin = mergeSettings(this.data.jellyfin, data);
-  }
-
-  get tautulli(): TautulliSettings {
-    return this.data.tautulli;
-  }
-
-  set tautulli(data: TautulliSettings) {
-    this.data.tautulli = mergeSettings(this.data.tautulli, data);
-  }
-
-  get metadataSettings(): MetadataSettings {
-    return this.data.metadataSettings;
-  }
-
-  set metadataSettings(data: MetadataSettings) {
-    this.data.metadataSettings = mergeSettings(
-      this.data.metadataSettings,
-      data
-    );
-  }
-
-  get radarr(): RadarrSettings[] {
-    return this.data.radarr;
-  }
-
-  set radarr(data: RadarrSettings[]) {
-    this.data.radarr = data;
-  }
-
-  get sonarr(): SonarrSettings[] {
-    return this.data.sonarr;
-  }
-
-  set sonarr(data: SonarrSettings[]) {
-    this.data.sonarr = data;
   }
 
   get tpdb(): TpdbSettings {
@@ -825,12 +677,9 @@ class Settings {
       mediaServerLogin: this.data.main.mediaServerLogin,
       jellyfinExternalHost: this.data.jellyfin.externalHostname,
       jellyfinForgotPasswordUrl: this.data.jellyfin.jellyfinForgotPasswordUrl,
-      movie4kEnabled: this.data.radarr.some(
-        (radarr) => radarr.is4k && radarr.isDefault
-      ),
-      series4kEnabled: this.data.sonarr.some(
-        (sonarr) => sonarr.is4k && sonarr.isDefault
-      ),
+      // ponytail: 4K is gone; fields stay until the client stops reading them.
+      movie4kEnabled: false,
+      series4kEnabled: false,
       discoverRegion: this.data.main.discoverRegion,
       streamingRegion: this.data.main.streamingRegion,
       originalLanguage: this.data.main.originalLanguage,

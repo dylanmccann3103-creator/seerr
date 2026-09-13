@@ -7,8 +7,6 @@ import PageTitle from '@app/components/Common/PageTitle';
 import IssueComment from '@app/components/IssueDetails/IssueComment';
 import IssueDescription from '@app/components/IssueDetails/IssueDescription';
 import { issueOptions } from '@app/components/IssueModal/constants';
-import useDeepLinks from '@app/hooks/useDeepLinks';
-import useSettings from '@app/hooks/useSettings';
 import useToasts from '@app/hooks/useToasts';
 import { Permission, useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
@@ -19,15 +17,13 @@ import {
   ChatBubbleOvalLeftEllipsisIcon,
   CheckCircleIcon,
   PlayIcon,
-  ServerIcon,
 } from '@heroicons/react/24/outline';
 import { ArrowPathIcon } from '@heroicons/react/24/solid';
 import { IssueStatus } from '@server/constants/issue';
 import { MediaType } from '@server/constants/media';
-import { MediaServerType } from '@server/constants/server';
 import type Issue from '@server/entity/Issue';
-import type { MovieDetails } from '@server/models/Movie';
-import type { TvDetails } from '@server/models/Tv';
+import type { SceneDetails } from '@server/models/Scene';
+import type { SiteDetails } from '@server/models/Site';
 import axios from 'axios';
 import { Field, Form, Formik } from 'formik';
 import Link from 'next/link';
@@ -47,9 +43,7 @@ const messages = defineMessages('components.IssueDetails', {
   reopenissueandcomment: 'Reopen with Comment',
   issuepagetitle: 'Issue',
   playonplex: 'Play on {mediaServerName}',
-  play4konplex: 'Play in 4K on {mediaServerName}',
   openinarr: 'Open in {arr}',
-  openin4karr: 'Open in 4K {arr}',
   toasteditdescriptionsuccess: 'Issue description edited successfully!',
   toasteditdescriptionfailed:
     'Something went wrong while editing the issue description.',
@@ -58,12 +52,9 @@ const messages = defineMessages('components.IssueDetails', {
     'Something went wrong while updating the issue status.',
   issuetype: 'Type',
   lastupdated: 'Last Updated',
-  problemseason: 'Affected Season',
-  allseasons: 'All Seasons',
-  season: 'Season {seasonNumber}',
-  problemepisode: 'Affected Episode',
-  allepisodes: 'All Episodes',
-  episode: 'Episode {episodeNumber}',
+  problemseason: 'Affected Year',
+  allseasons: 'All Years',
+  season: '{seasonNumber}',
   deleteissue: 'Delete Issue',
   deleteissueconfirm: 'Are you sure you want to delete this issue?',
   toastissuedeleted: 'Issue deleted successfully!',
@@ -72,10 +63,6 @@ const messages = defineMessages('components.IssueDetails', {
   unknownissuetype: 'Unknown',
   commentplaceholder: 'Add a comment…',
 });
-
-const isMovie = (movie: MovieDetails | TvDetails): movie is MovieDetails => {
-  return (movie as MovieDetails).title !== undefined;
-};
 
 const IssueDetails = () => {
   const { addToast } = useToasts();
@@ -86,18 +73,13 @@ const IssueDetails = () => {
   const { data: issueData, mutate: revalidateIssue } = useSWR<Issue>(
     `/api/v1/issue/${router.query.issueId}`
   );
-  const { data, error } = useSWR<MovieDetails | TvDetails>(
-    issueData?.media.tmdbId
-      ? `/api/v1/${issueData.media.mediaType}/${issueData.media.tmdbId}`
+  const { data, error } = useSWR<SceneDetails | SiteDetails>(
+    issueData?.media.tpdbId
+      ? `/api/v1/${issueData.media.mediaType}/${issueData.media.tpdbId}`
       : null
   );
 
-  const { mediaUrl, mediaUrl4k } = useDeepLinks({
-    mediaUrl: data?.mediaInfo?.mediaUrl,
-    mediaUrl4k: data?.mediaInfo?.mediaUrl4k,
-    iOSPlexUrl: data?.mediaInfo?.iOSPlexUrl,
-    iOSPlexUrl4k: data?.mediaInfo?.iOSPlexUrl4k,
-  });
+  const mediaUrl = data?.mediaInfo?.mediaUrl;
 
   const CommentSchema = Yup.object().shape({
     message: Yup.string().required(),
@@ -106,7 +88,6 @@ const IssueDetails = () => {
   const issueOption = issueOptions.find(
     (opt) => opt.issueType === issueData?.issueType
   );
-  const settings = useSettings();
 
   if (!data && !error) {
     return <LoadingSpinner />;
@@ -175,8 +156,8 @@ const IssueDetails = () => {
     }
   };
 
-  const title = isMovie(data) ? data.title : data.name;
-  const releaseYear = isMovie(data) ? data.releaseDate : data.firstAirDate;
+  const title = 'title' in data ? data.title : data.name;
+  const releaseYear = 'releaseDate' in data ? data.releaseDate : undefined;
 
   return (
     <div
@@ -206,12 +187,12 @@ const IssueDetails = () => {
           {intl.formatMessage(messages.deleteissueconfirm)}
         </Modal>
       </Transition>
-      {data.backdropPath && (
+      {'backdropPath' in data && data.backdropPath && (
         <div className="media-page-bg-image">
           <CachedImage
-            type="tmdb"
+            type="tpdb"
             alt=""
-            src={`https://image.tmdb.org/t/p/w1920_and_h800_multi_faces/${data.backdropPath}`}
+            src={data.backdropPath}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             fill
             priority
@@ -228,12 +209,8 @@ const IssueDetails = () => {
       <div className="media-header">
         <div className="media-poster">
           <CachedImage
-            type="tmdb"
-            src={
-              data.posterPath
-                ? `https://image.tmdb.org/t/p/w600_and_h900_bestv2${data.posterPath}`
-                : '/images/seerr_poster_not_found.png'
-            }
+            type="tpdb"
+            src={data.posterPath ?? '/images/seerr_poster_not_found.png'}
             alt=""
             sizes="100vw"
             style={{ width: '100%', height: 'auto' }}
@@ -257,9 +234,7 @@ const IssueDetails = () => {
           </div>
           <h1>
             <Link
-              href={`/${
-                issueData.media.mediaType === MediaType.MOVIE ? 'movie' : 'tv'
-              }/${data.id}`}
+              href={`/${issueData.media.mediaType}/${data.id}`}
               className="hover:underline"
             >
               {title}
@@ -328,7 +303,7 @@ const IssueDetails = () => {
                   )}
                 </span>
               </div>
-              {issueData.media.mediaType === MediaType.TV && (
+              {issueData.media.mediaType === MediaType.SITE && (
                 <>
                   <div className="media-fact">
                     <span>{intl.formatMessage(messages.problemseason)}</span>
@@ -341,19 +316,6 @@ const IssueDetails = () => {
                       )}
                     </span>
                   </div>
-                  {issueData.problemSeason > 0 && (
-                    <div className="media-fact">
-                      <span>{intl.formatMessage(messages.problemepisode)}</span>
-                      <span className="media-fact-value">
-                        {intl.formatMessage(
-                          issueData.problemEpisode > 0
-                            ? messages.episode
-                            : messages.allepisodes,
-                          { episodeNumber: issueData.problemEpisode }
-                        )}
-                      </span>
-                    </div>
-                  )}
                 </>
               )}
               <div className="media-fact">
@@ -382,91 +344,12 @@ const IssueDetails = () => {
                 >
                   <PlayIcon />
                   <span>
-                    {settings.currentSettings.mediaServerType ===
-                    MediaServerType.EMBY
-                      ? intl.formatMessage(messages.playonplex, {
-                          mediaServerName: 'Emby',
-                        })
-                      : settings.currentSettings.mediaServerType ===
-                          MediaServerType.PLEX
-                        ? intl.formatMessage(messages.playonplex, {
-                            mediaServerName: 'Plex',
-                          })
-                        : intl.formatMessage(messages.playonplex, {
-                            mediaServerName: 'Jellyfin',
-                          })}
+                    {intl.formatMessage(messages.playonplex, {
+                      mediaServerName: 'Jellyfin',
+                    })}
                   </span>
                 </Button>
               )}
-              {issueData?.media.serviceUrl &&
-                hasPermission(Permission.ADMIN) && (
-                  <Button
-                    as="a"
-                    href={issueData?.media.serviceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full"
-                    buttonType="ghost"
-                  >
-                    <ServerIcon />
-                    <span>
-                      {intl.formatMessage(messages.openinarr, {
-                        arr:
-                          issueData.media.mediaType === MediaType.MOVIE
-                            ? 'Radarr'
-                            : 'Sonarr',
-                      })}
-                    </span>
-                  </Button>
-                )}
-              {issueData?.media.mediaUrl4k && (
-                <Button
-                  as="a"
-                  href={mediaUrl4k}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full"
-                  buttonType="ghost"
-                >
-                  <PlayIcon />
-                  <span>
-                    {settings.currentSettings.mediaServerType ===
-                    MediaServerType.EMBY
-                      ? intl.formatMessage(messages.play4konplex, {
-                          mediaServerName: 'Emby',
-                        })
-                      : settings.currentSettings.mediaServerType ===
-                          MediaServerType.PLEX
-                        ? intl.formatMessage(messages.play4konplex, {
-                            mediaServerName: 'Plex',
-                          })
-                        : intl.formatMessage(messages.play4konplex, {
-                            mediaServerName: 'Jellyfin',
-                          })}
-                  </span>
-                </Button>
-              )}
-              {issueData?.media.serviceUrl4k &&
-                hasPermission(Permission.ADMIN) && (
-                  <Button
-                    as="a"
-                    href={issueData?.media.serviceUrl4k}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full"
-                    buttonType="ghost"
-                  >
-                    <ServerIcon />
-                    <span>
-                      {intl.formatMessage(messages.openin4karr, {
-                        arr:
-                          issueData.media.mediaType === MediaType.MOVIE
-                            ? 'Radarr'
-                            : 'Sonarr',
-                      })}
-                    </span>
-                  </Button>
-                )}
             </div>
           </div>
           <div className="mt-6">
@@ -594,7 +477,7 @@ const IssueDetails = () => {
                 )}
               </span>
             </div>
-            {issueData.media.mediaType === MediaType.TV && (
+            {issueData.media.mediaType === MediaType.SITE && (
               <>
                 <div className="media-fact">
                   <span>{intl.formatMessage(messages.problemseason)}</span>
@@ -607,19 +490,6 @@ const IssueDetails = () => {
                     )}
                   </span>
                 </div>
-                {issueData.problemSeason > 0 && (
-                  <div className="media-fact">
-                    <span>{intl.formatMessage(messages.problemepisode)}</span>
-                    <span className="media-fact-value">
-                      {intl.formatMessage(
-                        issueData.problemEpisode > 0
-                          ? messages.episode
-                          : messages.allepisodes,
-                        { episodeNumber: issueData.problemEpisode }
-                      )}
-                    </span>
-                  </div>
-                )}
               </>
             )}
             <div className="media-fact">
@@ -648,90 +518,12 @@ const IssueDetails = () => {
               >
                 <PlayIcon />
                 <span>
-                  {settings.currentSettings.mediaServerType ===
-                  MediaServerType.EMBY
-                    ? intl.formatMessage(messages.playonplex, {
-                        mediaServerName: 'Emby',
-                      })
-                    : settings.currentSettings.mediaServerType ===
-                        MediaServerType.PLEX
-                      ? intl.formatMessage(messages.playonplex, {
-                          mediaServerName: 'Plex',
-                        })
-                      : intl.formatMessage(messages.playonplex, {
-                          mediaServerName: 'Jellyfin',
-                        })}
-                </span>
-              </Button>
-            )}
-            {issueData?.media.serviceUrl && hasPermission(Permission.ADMIN) && (
-              <Button
-                as="a"
-                href={issueData?.media.serviceUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full"
-                buttonType="ghost"
-              >
-                <ServerIcon />
-                <span>
-                  {intl.formatMessage(messages.openinarr, {
-                    arr:
-                      issueData.media.mediaType === MediaType.MOVIE
-                        ? 'Radarr'
-                        : 'Sonarr',
+                  {intl.formatMessage(messages.playonplex, {
+                    mediaServerName: 'Jellyfin',
                   })}
                 </span>
               </Button>
             )}
-            {issueData?.media.mediaUrl4k && (
-              <Button
-                as="a"
-                href={mediaUrl4k}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full"
-                buttonType="ghost"
-              >
-                <PlayIcon />
-                <span>
-                  {settings.currentSettings.mediaServerType ===
-                  MediaServerType.EMBY
-                    ? intl.formatMessage(messages.play4konplex, {
-                        mediaServerName: 'Emby',
-                      })
-                    : settings.currentSettings.mediaServerType ===
-                        MediaServerType.PLEX
-                      ? intl.formatMessage(messages.play4konplex, {
-                          mediaServerName: 'Plex',
-                        })
-                      : intl.formatMessage(messages.play4konplex, {
-                          mediaServerName: 'Jellyfin',
-                        })}
-                </span>
-              </Button>
-            )}
-            {issueData?.media.serviceUrl4k &&
-              hasPermission(Permission.ADMIN) && (
-                <Button
-                  as="a"
-                  href={issueData?.media.serviceUrl4k}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full"
-                  buttonType="ghost"
-                >
-                  <ServerIcon />
-                  <span>
-                    {intl.formatMessage(messages.openin4karr, {
-                      arr:
-                        issueData.media.mediaType === MediaType.MOVIE
-                          ? 'Radarr'
-                          : 'Sonarr',
-                    })}
-                  </span>
-                </Button>
-              )}
           </div>
         </div>
       </div>

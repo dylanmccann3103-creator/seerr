@@ -1,5 +1,4 @@
 import csurf from '@dr.pogodin/csurf';
-import PlexAPI from '@server/api/plexapi';
 import dataSource, { getRepository } from '@server/datasource';
 import DiscoverSlider from '@server/entity/DiscoverSlider';
 import { Session } from '@server/entity/Session';
@@ -100,37 +99,6 @@ app
       );
     }
 
-    // Migrate library types
-    if (
-      settings.plex.libraries.length > 1 &&
-      !settings.plex.libraries[0].type
-    ) {
-      const userRepository = getRepository(User);
-      const admin = await userRepository.findOne({
-        select: { id: true, plexToken: true },
-        where: { id: 1 },
-      });
-
-      if (admin) {
-        logger.info('Migrating Plex libraries to include media type', {
-          label: 'Settings',
-        });
-
-        const plexapi = new PlexAPI({ plexToken: admin.plexToken });
-
-        try {
-          await plexapi.syncLibraries();
-        } catch {
-          // Leave the existing libraries untouched so the migration retries on
-          // the next startup instead of discarding the user's configuration
-          logger.warn(
-            'Failed to migrate Plex libraries; will retry on next startup',
-            { label: 'Settings' }
-          );
-        }
-      }
-    }
-
     // Register Notification Agents
     notificationManager.registerAgents([
       new DiscordAgent(),
@@ -151,7 +119,7 @@ app
       startJobs();
     } else {
       logger.info(
-        `Skipping starting the scheduled jobs as we have no Plex/Jellyfin/Emby servers setup yet`,
+        `Skipping starting the scheduled jobs as we have no users yet`,
         {
           label: 'Server',
         }
