@@ -9,8 +9,8 @@ import useSWR from 'swr';
 const messages = defineMessages(
   'components.Layout.UserDropdown.MiniQuotaDisplay',
   {
-    movierequests: 'Movie Requests',
-    seriesrequests: 'Series Requests',
+    movierequests: 'Scene Requests',
+    seriesrequests: 'Site Requests',
   }
 );
 

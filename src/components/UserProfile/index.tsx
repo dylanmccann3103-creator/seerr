@@ -27,8 +27,8 @@ const messages = defineMessages('components.UserProfile', {
   unlimited: 'Unlimited',
   totalrequests: 'Total Requests',
   pastdays: '{type} (past {days} days)',
-  movierequests: 'Movie Requests',
-  seriesrequest: 'Series Requests',
+  movierequests: 'Scene Requests',
+  seriesrequest: 'Site Requests',
 });
 
 const UserProfile = () => {

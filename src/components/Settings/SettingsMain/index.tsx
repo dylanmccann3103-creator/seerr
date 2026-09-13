@@ -50,7 +50,7 @@ const messages = defineMessages('components.Settings.SettingsMain', {
   validationApplicationTitle: 'You must provide an application title',
   validationApplicationUrl: 'You must provide a valid URL',
   validationApplicationUrlTrailingSlash: 'URL must not end in a trailing slash',
-  partialRequestsEnabled: 'Allow Partial Series Requests',
+  partialRequestsEnabled: 'Allow Partial Site Requests',
   enableSpecialEpisodes: 'Allow Special Episodes Requests',
   locale: 'Display Language',
   youtubeUrl: 'YouTube URL',

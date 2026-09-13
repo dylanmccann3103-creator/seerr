@@ -9,8 +9,8 @@ import { useIntl } from 'react-intl';
 const messages = defineMessages('components.RequestModal.QuotaDisplay', {
   requestsremaining:
     '{remaining, plural, =0 {No} other {<strong>#</strong>}} {type} {remaining, plural, one {request} other {requests}} remaining',
-  movielimit: '{limit, plural, one {movie} other {movies}}',
-  seasonlimit: '{limit, plural, one {season} other {seasons}}',
+  movielimit: '{limit, plural, one {scene} other {scenes}}',
+  seasonlimit: '{limit, plural, one {year} other {years}}',
   allowedRequests:
     'You are allowed to request <strong>{limit}</strong> {type}{days, plural, =0 {} one { every day} other { every <strong>{days}</strong> days}}.',
   allowedRequestsUser:
@@ -19,13 +19,13 @@ const messages = defineMessages('components.RequestModal.QuotaDisplay', {
     'You can view a summary of your request limits on your <ProfileLink>profile page</ProfileLink>.',
   quotaLinkUser:
     "You can view a summary of this user's request limits on their <ProfileLink>profile page</ProfileLink>.",
-  movie: 'movie',
-  season: 'season',
-  notenoughseasonrequests: 'Not enough season requests remaining',
+  movie: 'scene',
+  season: 'year',
+  notenoughseasonrequests: 'Not enough year requests remaining',
   requiredquota:
-    'You need to have at least <strong>{seasons}</strong> {seasons, plural, one {season request} other {season requests}} remaining in order to submit a request for this series.',
+    'You need to have at least <strong>{seasons}</strong> {seasons, plural, one {year request} other {year requests}} remaining in order to submit a request for this site.',
   requiredquotaUser:
-    'This user needs to have at least <strong>{seasons}</strong> {seasons, plural, one {season request} other {season requests}} remaining in order to submit a request for this series.',
+    'This user needs to have at least <strong>{seasons}</strong> {seasons, plural, one {year request} other {year requests}} remaining in order to submit a request for this site.',
 });
 
 interface QuotaDisplayProps {

@@ -5,6 +5,41 @@
 All phases A–G of PLAN.md are done. Gate on the final tree: typecheck server+client
 clean, lint 0 errors, 134/134 tests, `seerr-api.yml` parses with no dangling refs.
 
+## Browser walkthrough (2026-09-13, live TPDB + Whisparr 2.2.0.231 + Stash 0.31.1)
+
+Dev instance: fresh DB seeded with the cypress admin (`admin@seerr.dev`), minimal
+`config/settings.json` (Jellyfin server type, placeholder `jellyfin.apiKey` so the
+settings migrator does not try to mint a token), Whisparr + Stash configured through
+the settings API, TPDB key from `.env`.
+
+Verified in the browser: home sliders (Recent Scenes / Sites / Performers), search
+(mixed sites/performers/scenes), the three discover pages, scene/site/performer
+details, scene request modal → auto-approved → dispatched to Whisparr (site updated,
+episode monitored, `sentToServiceAt` set, media PROCESSING), requests list, settings
+General/Services (Whisparr test → profiles + root folders)/Stash (test OK)/Jobs &
+Cache/About, user list, profile, issues. Whisparr scan job: Brazzers → site row,
+11 year seasons, PROCESSING.
+
+Found + fixed:
+- `/site/:id` rendered blank: SSR crash in `RequestButton` (`media.requests` undefined)
+  because the scene/site routes loaded `Media` without the `requests`/`issues`
+  relations that upstream's `getMedia` always loads. Fixed in the routes.
+- Movie/series wording left in the UI: search placeholder, profile + dropdown quota
+  labels, quota selector/display units (movie→scene, season→year), permission labels
+  (Request Movies/Series → Scenes/Sites, Auto-Approve likewise), global request limit
+  labels, "Allow Partial Series Requests". en.json re-extracted; other locales keep
+  their old translations for these keys.
+
+Noted, not fixed:
+- React "unique key" dev warnings from `RequestList`/`IssueList` children (upstream
+  pattern, cosmetic).
+- Site page shows every year as "Requested" after the scan because monitored
+  seasons without files are PROCESSING; that is the upstream label for that state.
+- Setup wizard requires Jellyfin (no local-only path); a Jellyfin-less install needs
+  the settings.json shortcut above.
+- Next dev warns about cross-origin `/_next/webpack-hmr` when the app is opened via
+  the LAN IP; dev-only.
+
 ## Done (phase G)
 
 - **G1 telemetry sweep** — `server/api/github.ts` deleted; `/status` returns
@@ -204,7 +239,6 @@ clean, lint 0 errors, 134/134 tests, `seerr-api.yml` parses with no dangling ref
 - Edit mode on pending scene/site requests = approve/cancel only (PUT /request/:id
   has no scene/site branch).
 - Jellyfin `pathMappings` has no settings-UI editor (backend only).
-- No browser walkthrough of the new pages against live TPDB/Whisparr yet.
 - **"Popular sites"**: TPDB has no sort params; the sites list is in default order.
 
 ## Test data added to Whisparr

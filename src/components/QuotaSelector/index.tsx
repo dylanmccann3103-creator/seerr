@@ -7,8 +7,8 @@ const messages = defineMessages('components.QuotaSelector', {
     '{quotaLimit} <quotaUnits>{movies} per {quotaDays} {days}</quotaUnits>',
   tvRequests:
     '{quotaLimit} <quotaUnits>{seasons} per {quotaDays} {days}</quotaUnits>',
-  movies: '{count, plural, one {movie} other {movies}}',
-  seasons: '{count, plural, one {season} other {seasons}}',
+  movies: '{count, plural, one {scene} other {scenes}}',
+  seasons: '{count, plural, one {year} other {years}}',
   days: '{count, plural, one {day} other {days}}',
   unlimited: 'Unlimited',
 });

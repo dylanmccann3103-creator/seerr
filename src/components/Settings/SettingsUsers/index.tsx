@@ -36,8 +36,8 @@ const messages = defineMessages('components.Settings.SettingsUsers', {
   newPlexLogin: 'Enable New {mediaServerName} Sign-In',
   newPlexLoginTip:
     'Allow {mediaServerName} users to sign in without first being imported',
-  movieRequestLimitLabel: 'Global Movie Request Limit',
-  tvRequestLimitLabel: 'Global Series Request Limit',
+  movieRequestLimitLabel: 'Global Scene Request Limit',
+  tvRequestLimitLabel: 'Global Site Request Limit',
   defaultPermissions: 'Default Permissions',
   defaultPermissionsTip: 'Initial permissions assigned to new users',
   disabledMediaServerLoginWarning:

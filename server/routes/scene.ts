@@ -13,6 +13,7 @@ sceneRoutes.get('/:id', async (req, res, next) => {
     const scene = await new Tpdb().getScene({ sceneId: req.params.id });
     const media = await getRepository(Media).findOne({
       where: { tpdbId: req.params.id, mediaType: MediaType.SCENE },
+      relations: { requests: true, issues: true },
     });
     return res.status(200).json(mapSceneDetails(scene, media ?? undefined));
   } catch (e) {

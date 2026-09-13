@@ -17,6 +17,7 @@ siteRoutes.get('/:id', async (req, res, next) => {
       new Tpdb().getSite({ siteId }),
       getRepository(Media).findOne({
         where: { tpdbId: req.params.id, mediaType: MediaType.SITE },
+        relations: { requests: true, issues: true },
       }),
       // Whisparr not configured / unreachable -> no year picker, page still loads.
       MediaRequest.whisparrYears(siteId).catch(() => [] as number[]),
