@@ -5,20 +5,26 @@
 **Seerr for Whisparr** is a request manager for adult content, forked from
 [Seerr](https://github.com/seerr-team/seerr). Users browse scenes, sites and
 performers from [ThePornDB](https://theporndb.net), request them, and the
-request is sent to a single [Whisparr v2](https://whisparr.com) instance.
-Availability is read back from your library through
+request is sent to a single [Whisparr](https://whisparr.com) instance — either
+API version: v2 (sites/seasons, TPDB-keyed) or v3 (scene-only, StashDB-keyed),
+chosen in Settings. Availability is read back from your library through
 [Stash](https://stashapp.cc) and/or [Jellyfin](https://jellyfin.org).
 
 Everything movie/TV/Plex/Radarr/Sonarr/TMDB related from upstream Seerr has
 been removed. The app makes no calls to GitHub or any telemetry endpoint; the
-only outbound traffic is to ThePornDB, your Whisparr, Stash and Jellyfin, and
-the notification agents you configure.
+only outbound traffic is to ThePornDB, your Whisparr, Stash, Jellyfin, and —
+only if you use Whisparr v3 — StashDB, plus the notification agents you
+configure.
 
 ## Features
 
 - Discover and search scenes, sites and performers (ThePornDB).
-- Request a single scene or whole years of a site; requests are dispatched to
-  Whisparr exactly once and failures are shown with a reason and can be retried.
+- Request a single scene or whole years of a site (v2) or a single scene
+  (v3); requests are dispatched to Whisparr exactly once and failures are
+  shown with a reason and can be retried.
+- Whisparr v3 support: a scene is resolved to its StashDB ID (direct link, or
+  a studio/date/title search fallback) and added as a v3 "movie". Existing
+  requests can be migrated to v3 in bulk from Settings.
 - Library scan via Whisparr, with availability confirmed against Stash
   (path match) and/or Jellyfin.
 - Jellyfin or local accounts, permissions, quotas, issues, notifications
@@ -28,7 +34,8 @@ the notification agents you configure.
 
 ## Getting started
 
-Requirements: Whisparr v2, a ThePornDB API key, and Stash and/or Jellyfin.
+Requirements: Whisparr (v2 or v3), a ThePornDB API key, Stash and/or Jellyfin,
+and — only for Whisparr v3 — a [StashDB](https://stashdb.org) API key.
 Storage is **SQLite only**. This fork needs a **fresh database**: do not point
 it at an existing Seerr/Overseerr/Jellyseerr `config` directory.
 

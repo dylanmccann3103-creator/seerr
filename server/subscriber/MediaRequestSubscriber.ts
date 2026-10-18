@@ -17,6 +17,7 @@ import SeasonRequest from '@server/entity/SeasonRequest';
 import notificationManager, { Notification } from '@server/lib/notifications';
 import { getSettings } from '@server/lib/settings';
 import { tpdbTitle } from '@server/lib/tpdbTitle';
+import { sendSceneToWhisparrV3 } from '@server/lib/whisparrV3';
 import logger from '@server/logger';
 import { withNestedTransaction } from '@server/utils/nestedTransaction';
 import { truncate } from 'lodash';
@@ -165,6 +166,12 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
       };
 
       if (entity.type === MediaType.SITE) {
+        // Sites/seasons are a v2-only concept; Whisparr v3 is scene-level only.
+        if (settings.apiVersion === 'v3') {
+          throw new Error(
+            'Site requests are not supported while Whisparr is set to API version v3'
+          );
+        }
         const site = await whisparr.addSite({
           ...common,
           tvdbid: Number(media.tpdbId),
@@ -174,6 +181,19 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
         await silentUpdate(Media, media.id, {
           externalServiceId: site.id,
           externalServiceSlug: site.titleSlug,
+        });
+      } else if (settings.apiVersion === 'v3') {
+        const result = await sendSceneToWhisparrV3({
+          tpdbId: media.tpdbId,
+          profileId,
+          rootFolderPath,
+          tags,
+        });
+        if (result.status === 'not_found') {
+          throw new Error('Niet gevonden op StashDB');
+        }
+        await silentUpdate(Media, media.id, {
+          externalServiceId: result.externalServiceId,
         });
       } else {
         const scene = await new Tpdb().getScene({ sceneId: media.tpdbId });

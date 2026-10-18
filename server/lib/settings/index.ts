@@ -93,6 +93,15 @@ export interface WhisparrSettings {
   searchOnRequest: boolean;
   externalUrl?: string;
   tagRequests: boolean;
+  // v2 = Sonarr-shaped site/episode API (default, unchanged). v3 = Radarr-shaped
+  // single-scene "movie" API keyed by StashDB id. Sites/seasons only exist in v2.
+  apiVersion: 'v2' | 'v3';
+  // ApiKey header for https://stashdb.org/graphql, used to resolve a TPDB
+  // scene's StashDB id when requesting through the v3 client.
+  stashDbApiKey?: string;
+  // v3 only: trigger a search as soon as a scene is added. Off by default so a
+  // bulk migration doesn't try to download everything at once.
+  searchOnAddV3: boolean;
 }
 
 // Maps a Whisparr container path to the equivalent Stash container path, so
@@ -449,6 +458,9 @@ class Settings {
         // ponytail: no real downloads during development, see WhisparrSettings.
         searchOnRequest: true,
         tagRequests: false,
+        apiVersion: 'v2',
+        stashDbApiKey: '',
+        searchOnAddV3: false,
       },
       stash: {
         enabled: false,

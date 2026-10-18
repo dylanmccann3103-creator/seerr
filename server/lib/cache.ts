@@ -1,6 +1,6 @@
 import { LRUCache } from 'lru-cache';
 
-export type AvailableCacheIds = 'tpdb' | 'whisparr' | 'stash';
+export type AvailableCacheIds = 'tpdb' | 'whisparr' | 'stash' | 'stashdb';
 
 const DEFAULT_TTL = 300;
 
@@ -16,6 +16,9 @@ const WHISPARR_MAX_KEYS = 64;
 
 // One key per performer whose image was looked up in Stash (hits and misses).
 const STASH_MAX_KEYS = 2000;
+
+// One key per scene resolved to a StashDB id (Whisparr v3 only).
+const STASHDB_MAX_KEYS = 1000;
 
 export interface CacheStats {
   hits: number;
@@ -195,6 +198,10 @@ class CacheManager {
     stash: new Cache('stash', 'Stash', {
       stdTtl: 21600,
       max: STASH_MAX_KEYS,
+    }),
+    stashdb: new Cache('stashdb', 'StashDB', {
+      stdTtl: 21600,
+      max: STASHDB_MAX_KEYS,
     }),
   };
 

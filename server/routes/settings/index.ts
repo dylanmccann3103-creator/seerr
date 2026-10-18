@@ -15,7 +15,7 @@ import type { AvailableCacheIds } from '@server/lib/cache';
 import cacheManager from '@server/lib/cache';
 import ImageProxy from '@server/lib/imageproxy';
 import { Permission } from '@server/lib/permissions';
-import { whisparrScanner } from '@server/lib/scanners/whisparr';
+import { activeWhisparrScanner } from '@server/lib/scanners/activeWhisparr';
 import type { JobId, Library, MainSettings } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
@@ -292,16 +292,17 @@ settingsRoutes.get('/jellyfin/users', async (req, res) => {
 // Library availability is Whisparr-driven (path match into Jellyfin/Stash),
 // so the "sync" button on the Jellyfin page runs the Whisparr scan.
 settingsRoutes.get('/jellyfin/sync', (_req, res) => {
-  return res.status(200).json(whisparrScanner.status());
+  return res.status(200).json(activeWhisparrScanner().status());
 });
 
 settingsRoutes.post('/jellyfin/sync', (req, res) => {
+  const scanner = activeWhisparrScanner();
   if (req.body.cancel) {
-    whisparrScanner.cancel();
+    scanner.cancel();
   } else if (req.body.start) {
-    whisparrScanner.run();
+    scanner.run();
   }
-  return res.status(200).json(whisparrScanner.status());
+  return res.status(200).json(scanner.status());
 });
 settingsRoutes.get(
   '/logs',

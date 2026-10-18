@@ -1,6 +1,6 @@
 import downloadTracker from '@server/lib/downloadtracker';
 import ImageProxy from '@server/lib/imageproxy';
-import { whisparrScanner } from '@server/lib/scanners/whisparr';
+import { activeWhisparrScanner } from '@server/lib/scanners/activeWhisparr';
 import type { JobId } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
@@ -30,10 +30,10 @@ export const startJobs = (): void => {
     cronSchedule: jobs['whisparr-scan'].schedule,
     job: schedule.scheduleJob(jobs['whisparr-scan'].schedule, () => {
       logger.info('Starting scheduled job: Whisparr Scan', { label: 'Jobs' });
-      whisparrScanner.run();
+      activeWhisparrScanner().run();
     }),
-    running: () => whisparrScanner.status().running,
-    cancelFn: () => whisparrScanner.cancel(),
+    running: () => activeWhisparrScanner().status().running,
+    cancelFn: () => activeWhisparrScanner().cancel(),
   });
 
   // Run download sync every minute

@@ -252,6 +252,11 @@ export class MediaRequest {
         'Whisparr is not configured; request specific years instead'
       );
     }
+    if (whisparr.apiVersion === 'v3') {
+      throw new NoSeasonsAvailableError(
+        'Sites/years are not available while Whisparr is set to API version v3'
+      );
+    }
     const api = new WhisparrAPI({
       apiKey: whisparr.apiKey,
       url: WhisparrAPI.buildUrl(whisparr, '/api/v3'),
